@@ -4,6 +4,7 @@ import {
   resolveBarChartKeys,
   resolvePieChartKeys,
 } from '../utils/chartData';
+import { ExportDataButtons } from './ExportDataButtons';
 import { DataTable } from './charts/DataTable';
 import { BarChartView } from './charts/BarChartView';
 import { PieChartView } from './charts/PieChartView';
@@ -11,27 +12,6 @@ import { PieChartView } from './charts/PieChartView';
 interface ResultsPanelProps {
   result: PipelineResult | null;
   onClose: () => void;
-}
-
-function exportCsv(data: Record<string, unknown>[]) {
-  if (!data.length) return;
-  const cols = Object.keys(data[0]);
-  const lines = [
-    cols.join(','),
-    ...data.map((row) =>
-      cols.map((c) => {
-        const v = String(row[c] ?? '');
-        return v.includes(',') ? `"${v.replace(/"/g, '""')}"` : v;
-      }).join(','),
-    ),
-  ];
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'datapipe-reporting.csv';
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 export function ResultsPanel({ result, onClose }: ResultsPanelProps) {
@@ -62,13 +42,14 @@ export function ResultsPanel({ result, onClose }: ResultsPanelProps) {
         {result?.result_type === 'table' && (
           <div className="results-panel__block">
             <p className="result-label">Relevé des opérations</p>
-            <DataTable data={result.data} onExportCsv={() => exportCsv(result.data)} />
+            <DataTable data={result.data} />
           </div>
         )}
 
         {result?.result_type === 'bar_chart' && barKeys && result.data.length > 0 && (
           <div className="results-panel__block results-panel__block--chart">
             <p className="result-label">Graphique barres</p>
+            <ExportDataButtons data={result.data} className="export-data-actions--chart" />
             <BarChartView data={result.data} xKey={barKeys.xKey} yKey={barKeys.yKey} />
           </div>
         )}
@@ -76,6 +57,7 @@ export function ResultsPanel({ result, onClose }: ResultsPanelProps) {
         {result?.result_type === 'pie_chart' && pieKeys && pieData.length > 0 && (
           <div className="results-panel__block results-panel__block--chart">
             <p className="result-label">Graphique circulaire</p>
+            <ExportDataButtons data={pieData} className="export-data-actions--chart" />
             <PieChartView
               data={pieData}
               categoryKey={pieKeys.categoryKey}
@@ -90,7 +72,7 @@ export function ResultsPanel({ result, onClose }: ResultsPanelProps) {
               Impossible d’afficher le graphique circulaire. Vérifiez les axes Catégorie et Valeur dans les
               paramètres du bloc, ou ajoutez un bloc Grouper en amont.
             </p>
-            <DataTable data={result.data} onExportCsv={() => exportCsv(result.data)} />
+            <DataTable data={result.data} />
           </div>
         )}
 

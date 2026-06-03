@@ -2812,6 +2812,17 @@ body {
   margin-top: 6px;
 }
 
+.export-data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.export-data-actions--chart {
+  margin-bottom: 10px;
+}
+
 .data-table-scroll {
   overflow: auto;
   max-height: min(360px, 40vh);

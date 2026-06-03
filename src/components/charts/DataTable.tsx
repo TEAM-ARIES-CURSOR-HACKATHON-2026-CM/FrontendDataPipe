@@ -1,9 +1,10 @@
+import { ExportDataButtons } from '../ExportDataButtons';
+
 interface DataTableProps {
   data: Record<string, unknown>[];
-  onExportCsv?: () => void;
 }
 
-export function DataTable({ data, onExportCsv }: DataTableProps) {
+export function DataTable({ data }: DataTableProps) {
   if (!data.length) {
     return <p className="empty-result">Aucune donnée à afficher.</p>;
   }
@@ -12,11 +13,7 @@ export function DataTable({ data, onExportCsv }: DataTableProps) {
 
   return (
     <div className="data-table-wrap">
-      {onExportCsv && (
-        <button type="button" className="btn btn--secondary btn--sm" onClick={onExportCsv}>
-          Exporter CSV
-        </button>
-      )}
+      <ExportDataButtons data={data} />
       <div className="data-table-scroll">
         <table className="data-table">
           <thead>
