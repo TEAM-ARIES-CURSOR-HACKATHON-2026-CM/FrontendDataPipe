@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    optimizeDeps: {
+      include: ['xlsx'],
+    },
     build: {
       rollupOptions: {
         output: {
