@@ -1,4 +1,4 @@
-import type { PipelineResult } from '../types';
+import type { BlockParams, PipelineResult } from '../types';
 
 export interface BarChartKeys {
   xKey: string;
@@ -39,10 +39,53 @@ export function resolveBarChartKeys(result: PipelineResult): BarChartKeys {
   return { xKey, yKey };
 }
 
+/** Réponse /pie_chart backend : lignes name/value souvent null — reconstruction nécessaire. */
+export function isBrokenPieResponse(data: Record<string, unknown>[]): boolean {
+  if (!data.length) return true;
+  const keys = firstRowKeys(data);
+  if (!keys.includes('name') || !keys.includes('value')) return false;
+  return data.every(
+    (row) =>
+      (row.name == null || row.name === '') &&
+      (row.value == null || row.value === '' || Number(row.value) === 0),
+  );
+}
+
+export function getPieParamsFromNode(params: BlockParams): PieChartKeys | null {
+  const categoryKey = params.axe_categorie?.trim();
+  const valueKey = params.axe_valeur?.trim();
+  if (!categoryKey || !valueKey) return null;
+  return { categoryKey, valueKey };
+}
+
+/** Construit des points { name, value } depuis les colonnes source (agrège les doublons). */
+export function buildPieFromSourceData(
+  sourceData: Record<string, unknown>[],
+  categoryKey: string,
+  valueKey: string,
+): Record<string, unknown>[] {
+  const totals = new Map<string, number>();
+
+  for (const row of sourceData) {
+    const label = String(row[categoryKey] ?? '—');
+    const amount = Number(row[valueKey]);
+    if (!Number.isFinite(amount)) continue;
+    totals.set(label, (totals.get(label) ?? 0) + amount);
+  }
+
+  return [...totals.entries()]
+    .filter(([, value]) => value > 0)
+    .map(([name, value]) => ({ name, value }));
+}
+
 export function resolvePieChartKeys(result: PipelineResult): PieChartKeys {
   const keys = firstRowKeys(result.data);
 
-  if (keys.includes('name') && keys.includes('value')) {
+  if (
+    keys.includes('name') &&
+    keys.includes('value') &&
+    !isBrokenPieResponse(result.data)
+  ) {
     return { categoryKey: 'name', valueKey: 'value' };
   }
 
@@ -69,10 +112,52 @@ export function filterPieRows(
   valueKey: string,
 ): Record<string, unknown>[] {
   return data
-    .map((row) => ({
-      ...row,
-      [categoryKey]: row[categoryKey] ?? row.name ?? '—',
-      [valueKey]: Number(row[valueKey] ?? row.value) || 0,
-    }))
+    .map((row) => {
+      const rawVal = row[valueKey] ?? row.value;
+      const num = typeof rawVal === 'number' ? rawVal : Number(rawVal);
+      return {
+        ...row,
+        [categoryKey]: row[categoryKey] ?? row.name ?? '—',
+        [valueKey]: Number.isFinite(num) ? num : 0,
+      };
+    })
     .filter((row) => Number(row[valueKey]) > 0);
+}
+
+/**
+ * Corrige une réponse pie_chart dont le backend renvoie name/value null.
+ * Le backend n’accepte en sortie que des nœuds de visualisation : on relance
+ * le pipeline en remplaçant temporairement le pie par un nœud « table ».
+ */
+export async function repairPieChartResult(
+  result: PipelineResult,
+  options: {
+    vizNodeId: string;
+    pieParams: PieChartKeys;
+    fetchTableOutput: () => Promise<PipelineResult>;
+  },
+): Promise<PipelineResult> {
+  if (result.result_type !== 'pie_chart' || !isBrokenPieResponse(result.data)) {
+    return result;
+  }
+
+  try {
+    const sourceResult = await options.fetchTableOutput();
+    const pieData = buildPieFromSourceData(
+      sourceResult.data,
+      options.pieParams.categoryKey,
+      options.pieParams.valueKey,
+    );
+
+    if (!pieData.length) return result;
+
+    return {
+      ...result,
+      data: pieData,
+      chart: { categoryKey: 'name', valueKey: 'value' },
+      row_count: pieData.length,
+    };
+  } catch {
+    return result;
+  }
 }

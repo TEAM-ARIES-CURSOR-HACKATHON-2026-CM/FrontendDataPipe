@@ -5,7 +5,6 @@ interface ExecutionPanelProps {
   csvLinked: boolean;
   csvFileName: string | null;
   loading: boolean;
-  error: string | null;
   result: PipelineResult | null;
   resultsOpen: boolean;
   onRun: () => void;
@@ -16,18 +15,17 @@ export function ExecutionPanel({
   csvLinked,
   csvFileName,
   loading,
-  error,
   result,
   resultsOpen,
   onRun,
   onToggleResults,
 }: ExecutionPanelProps) {
-  const hasResults = Boolean(result || error);
+  const hasResults = Boolean(result);
 
   return (
     <div className="execution-zone">
       {resultsOpen && hasResults && (
-        <ResultsPanel result={result} error={error} onClose={onToggleResults} />
+        <ResultsPanel result={result} onClose={onToggleResults} />
       )}
 
       <div className="execution-dock">

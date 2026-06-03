@@ -41,7 +41,25 @@ Développement (proxy, défaut dans `.env.development`) :
 
 ```
 VITE_API_URL=/api
+VITE_AI_API_URL=/ai-api
 ```
+
+Le build production lit `.env.production` (URLs directes des backends).
+
+## Déploiement (Render)
+
+1. [Render](https://render.com) → **New Static Site** → repo GitHub
+2. **Root directory** : `frontend`
+3. **Build** : `npm install && npm run build` · **Publish** : `dist`
+4. Variables (si besoin) : `VITE_API_URL`, `VITE_AI_API_URL` (voir `.env.production`)
+
+Fichier `render.yaml` inclus pour déploiement Blueprint.
+
+Test local : `npm run build && npm run preview`
+
+## Logo
+
+Favicon et en-tête : `public/logo.svg` et `public/favicon.svg` (logo DataPipe, plus d’icône Vite).
 
 ## Structure
 

@@ -1,11 +1,9 @@
 import type { Edge, Node } from '@xyflow/react';
-import type { BlockNodeData, GenerateResponse, PipelineResult } from '../types';
+import type { BlockNodeData, PipelineResult } from '../types';
 import { getApiBaseUrl } from './config';
-import { fromApiParams, toApiParams } from './paramsMapping';
+import { toApiParams } from './paramsMapping';
 import type {
   FastApiErrorBody,
-  GenerateRequestApi,
-  GenerateResponseApi,
   HealthResponseApi,
   PipelineRequestApi,
   PipelineResponseApi,
@@ -103,32 +101,6 @@ export async function runPipeline(payload: PipelineRequestApi): Promise<Pipeline
   if (!res.ok) throw new Error(await parseError(res));
   const raw = (await res.json()) as PipelineResponseApi;
   return normalizePipelineResponse(raw);
-}
-
-export async function generateTransformation(
-  description: string,
-  columns?: string[],
-): Promise<GenerateResponse> {
-  const body: GenerateRequestApi = {
-    description,
-    columns: columns?.length ? columns : null,
-  };
-  const res = await fetch(`${API_BASE}/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await parseError(res));
-  const data = (await res.json()) as GenerateResponseApi;
-  const blockType = data.block_type ?? undefined;
-  return {
-    code: data.code,
-    block_type: blockType,
-    params:
-      blockType && data.params
-        ? fromApiParams(blockType, data.params as Record<string, unknown>)
-        : undefined,
-  };
 }
 
 export { API_BASE };

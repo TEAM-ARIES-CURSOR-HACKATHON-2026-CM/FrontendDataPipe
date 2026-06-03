@@ -1,13 +1,50 @@
+import { useState } from 'react';
+import { generatePandasCode } from '../api/aiClient';
 import { AiAssistant } from './AiAssistant';
+import { aiResponseToBlocks } from '../utils/pandasToBlock';
+import type { ParsedBlock } from '../utils/pandasToBlock';
 
 interface CopilotSidebarProps {
-  loading: boolean;
-  lastCode: string | null;
-  onGenerate: (description: string) => void;
+  schema: string[];
+  onTransformations: (blocks: ParsedBlock[]) => void;
+  onError: (message: string) => void;
   onClose: () => void;
 }
 
-export function CopilotSidebar({ loading, lastCode, onGenerate, onClose }: CopilotSidebarProps) {
+export function CopilotSidebar({
+  schema,
+  onTransformations,
+  onError,
+  onClose,
+}: CopilotSidebarProps) {
+  const [generateLoading, setGenerateLoading] = useState(false);
+  const [lastCode, setLastCode] = useState<string | null>(null);
+  const [lastExplanation, setLastExplanation] = useState<string | null>(null);
+
+  const handleGenerate = async (description: string) => {
+    setGenerateLoading(true);
+    setLastCode(null);
+    setLastExplanation(null);
+    try {
+      const res = await generatePandasCode(description, schema);
+      setLastCode(res.code);
+      setLastExplanation(res.explanation);
+
+      const blocks = aiResponseToBlocks(description, res.code, schema);
+      if (blocks.length > 0) {
+        onTransformations(blocks);
+      } else {
+        onError(
+          'Code généré affiché ci-dessous, mais aucun bloc reconnu automatiquement. Ajoutez-le manuellement depuis la palette.',
+        );
+      }
+    } catch (e) {
+      onError(e instanceof Error ? e.message : 'Erreur génération IA');
+    } finally {
+      setGenerateLoading(false);
+    }
+  };
+
   return (
     <>
       <button
@@ -40,9 +77,11 @@ export function CopilotSidebar({ loading, lastCode, onGenerate, onClose }: Copil
         </header>
         <div className="copilot-drawer__body">
           <AiAssistant
-            loading={loading}
-            onGenerate={onGenerate}
+            loading={generateLoading}
+            schema={schema}
+            onGenerate={(desc) => void handleGenerate(desc)}
             lastCode={lastCode}
+            lastExplanation={lastExplanation}
             embedded
           />
         </div>

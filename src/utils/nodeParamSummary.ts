@@ -1,4 +1,5 @@
 import type { BlockParams, BlockType } from '../types';
+import { describeAddColumnHuman } from './addColumnFormula';
 
 const AGG_LABELS: Record<string, string> = {
   sum: 'somme',
@@ -7,7 +8,11 @@ const AGG_LABELS: Record<string, string> = {
 };
 
 /** Résumé des paramètres affiché sur chaque nœud (cahier de conception). */
-export function getNodeParamLines(blockType: BlockType, params: BlockParams): string[] {
+export function getNodeParamLines(
+  blockType: BlockType,
+  params: BlockParams,
+  columns: string[] = [],
+): string[] {
   switch (blockType) {
     case 'csv':
       return params.file_id
@@ -33,7 +38,7 @@ export function getNodeParamLines(blockType: BlockType, params: BlockParams): st
     case 'add_column':
       return [
         `nom: ${params.nom_colonne ?? '—'}`,
-        `formule: ${params.formule ?? '—'}`,
+        `calcul: ${describeAddColumnHuman(params, columns)}`,
       ];
     case 'table':
       return ['sortie: tableau'];

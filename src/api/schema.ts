@@ -33,17 +33,6 @@ export interface PipelineResponseApi {
   row_count: number;
 }
 
-export interface GenerateRequestApi {
-  description: string;
-  columns?: string[] | null;
-}
-
-export interface GenerateResponseApi {
-  code: string;
-  block_type?: BlockType | null;
-  params?: BlockParams | null;
-}
-
 export interface HealthResponseApi {
   status: string;
 }

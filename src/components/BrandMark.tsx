@@ -1,12 +1,12 @@
-/** Logo en-tête — public/logo.png */
+/** Logo DataPipe — public/logo.svg */
 export function BrandMark() {
   return (
     <img
-      src="/logo.png"
-      alt=""
+      src="/logo.svg"
+      alt="DataPipe"
       className="brand-mark"
-      width={44}
-      height={28}
+      width={40}
+      height={40}
       decoding="async"
     />
   );

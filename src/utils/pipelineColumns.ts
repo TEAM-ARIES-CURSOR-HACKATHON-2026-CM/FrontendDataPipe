@@ -7,6 +7,23 @@ function splitCols(value: string | undefined): string[] {
   return value.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Colonnes du jeu de données utilisées dans une formule (ex. « montant / 1.2 » → montant). */
+export function getFormulaReferencedColumns(
+  formula: string,
+  inputColumns: string[],
+): string[] {
+  const f = formula.trim();
+  if (!f || inputColumns.length === 0) return [];
+  return inputColumns.filter((col) => {
+    if (!col) return false;
+    return new RegExp(`\\b${escapeRegExp(col)}\\b`).test(f);
+  });
+}
+
 /** Colonnes produites en sortie d’un bloc (approximation alignée backend). */
 export function getOutputColumns(
   blockType: BlockType,
@@ -44,8 +61,12 @@ export function getOutputColumns(
   }
 }
 
-/** Colonnes lues par les paramètres d’un bloc. */
-export function getReferencedColumns(blockType: BlockType, params: BlockParams): string[] {
+/** Colonnes lues par les paramètres d’un bloc (colonnes existantes, pas le nom créé). */
+export function getReferencedColumns(
+  blockType: BlockType,
+  params: BlockParams,
+  inputColumns: string[] = [],
+): string[] {
   switch (blockType) {
     case 'filter':
       return params.colonne?.trim() ? [params.colonne.trim()] : [];
@@ -57,7 +78,7 @@ export function getReferencedColumns(blockType: BlockType, params: BlockParams):
     case 'sort':
       return params.colonne?.trim() ? [params.colonne.trim()] : [];
     case 'add_column':
-      return params.nom_colonne?.trim() ? [params.nom_colonne.trim()] : [];
+      return getFormulaReferencedColumns(params.formule ?? '', inputColumns);
     case 'bar_chart': {
       const refs: string[] = [];
       if (params.axeX?.trim()) refs.push(params.axeX.trim());
@@ -152,7 +173,32 @@ export function validatePipelineColumns(
     const inputCols = getInputColumnsAtNode(node.id, nodes, edges, uploadColumns);
     if (!inputCols) continue;
 
-    const refs = getReferencedColumns(d.blockType, d.params);
+    if (d.blockType === 'add_column') {
+      const newName = d.params.nom_colonne?.trim();
+      const formula = d.params.formule?.trim();
+      const label = d.label || d.blockType;
+      if (!newName) {
+        return `Le bloc « ${label} » : indiquez le nom de la nouvelle colonne.`;
+      }
+      if (!formula) {
+        return `Le bloc « ${label} » : indiquez une formule (ex. montant / 1.2).`;
+      }
+      if (inputCols.includes(newName)) {
+        return (
+          `Le bloc « ${label} » : la colonne « ${newName} » existe déjà. ` +
+          `Choisissez un autre nom pour la colonne calculée.`
+        );
+      }
+      const formulaRefs = getFormulaReferencedColumns(formula, inputCols);
+      if (formulaRefs.length === 0) {
+        return (
+          `Le bloc « ${label} » : la formule doit utiliser au moins une colonne existante ` +
+          `(${inputCols.join(', ')}). Ex. : montant / 1.2`
+        );
+      }
+    }
+
+    const refs = getReferencedColumns(d.blockType, d.params, inputCols);
     for (const col of refs) {
       if (!inputCols.includes(col)) {
         const label = d.label || d.blockType;

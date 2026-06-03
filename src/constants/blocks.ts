@@ -50,7 +50,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
   {
     type: 'add_column',
     label: 'Ajouter colonne',
-    description: 'nom · formule',
+    description: 'nouvelle colonne · calcul simple',
     category: 'transform',
     color: '#666666',
     defaultParams: { nom_colonne: 'montant_ht', formule: 'montant / 1.2' },

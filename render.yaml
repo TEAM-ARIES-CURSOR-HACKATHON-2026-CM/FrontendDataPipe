@@ -1,0 +1,12 @@
+# Déploiement Render — site statique (https://render.com/docs/static-sites)
+services:
+  - type: web
+    name: datapipe-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://ahmed-x-18-aries-datapipe.hf.space
+      - key: VITE_AI_API_URL
+        value: https://datapipe-ai-assistant.onrender.com

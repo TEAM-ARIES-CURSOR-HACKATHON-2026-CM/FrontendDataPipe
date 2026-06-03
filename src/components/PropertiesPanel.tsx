@@ -3,6 +3,7 @@ import type { BlockNodeData, BlockParams, FilterOperator } from '../types';
 import { getBlockDef } from '../constants/blocks';
 import { BlockIcon } from '../constants/blockIcons';
 import { PALETTE_CATEGORIES } from '../constants/branding';
+import { AddColumnFields } from './AddColumnFields';
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
@@ -162,16 +163,11 @@ export function PropertiesPanel({
       )}
 
       {data.blockType === 'add_column' && (
-        <>
-          <label className="field field--compact">
-            Nom colonne
-            <input value={params.nom_colonne ?? ''} onChange={(e) => setParam('nom_colonne', e.target.value)} />
-          </label>
-          <label className="field field--compact">
-            Formule
-            <input value={params.formule ?? ''} onChange={(e) => setParam('formule', e.target.value)} placeholder="montant / 1.2" />
-          </label>
-        </>
+        <AddColumnFields
+          columns={columns}
+          params={params}
+          onChange={(patch) => onUpdateParams(selectedNode.id, { ...params, ...patch })}
+        />
       )}
 
       {data.blockType === 'bar_chart' && (

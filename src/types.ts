@@ -66,8 +66,3 @@ export interface PipelineResult {
   error?: string;
 }
 
-export interface GenerateResponse {
-  code: string;
-  block_type?: BlockType;
-  params?: BlockParams;
-}

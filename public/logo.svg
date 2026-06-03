@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="DataPipe">
+  <rect width="64" height="64" rx="14" fill="#1a1a1a"/>
+  <path
+    d="M14 32h10M40 32h10"
+    stroke="#b8942e"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+  <circle cx="14" cy="32" r="5.5" fill="#b8942e"/>
+  <circle cx="32" cy="32" r="5.5" fill="#d4b86a" stroke="#b8942e" stroke-width="1.5"/>
+  <circle cx="50" cy="32" r="5.5" fill="#b8942e"/>
+  <path
+    d="M14 22c6-5 12-5 18 0s12 5 18 0"
+    stroke="#d4b86a"
+    stroke-width="2"
+    stroke-linecap="round"
+    opacity="0.55"
+  />
+</svg>

@@ -143,6 +143,7 @@ function FlowCanvasInner({
           <p>Glissez un bloc <strong>CSV</strong> depuis la palette à gauche, puis connectez vos transformations.</p>
         </div>
       )}
+      <div className="flow-canvas__viewport">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -187,6 +188,7 @@ function FlowCanvasInner({
           maskColor="rgba(26, 26, 26, 0.08)"
         />
       </ReactFlow>
+      </div>
     </div>
   );
 }

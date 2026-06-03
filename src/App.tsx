@@ -9,23 +9,29 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
 } from '@xyflow/react';
-import { uploadCsv, runPipeline, generateTransformation, buildPipelineRequest } from './api/client';
+import { uploadCsv, runPipeline, buildPipelineRequest } from './api/client';
 import type { BlockNodeData, PipelineResult } from './types';
 import { Palette } from './components/Palette';
-import { FlowCanvas, handlePaletteDragStart, createBlockNode } from './components/FlowCanvas';
+import { FlowCanvas, handlePaletteDragStart } from './components/FlowCanvas';
 import { ExecutionPanel } from './components/ExecutionPanel';
 import { RightSidebar } from './components/RightSidebar';
 import { validatePipelineBeforeRun } from './utils/pipelineValidation';
 import { getInputColumnsAtNode } from './utils/pipelineColumns';
 import { isVizType } from './constants/blocks';
+import { getPieParamsFromNode, repairPieChartResult } from './utils/chartData';
 import { getCsvFileIdFromNodes, getCsvFileNameFromNodes } from './utils/csvNode';
+import { appendBlocksToPipeline } from './utils/pipelineConnect';
+import type { ParsedBlock } from './utils/pandasToBlock';
 import { BRAND } from './constants/branding';
 import { BrandMark } from './components/BrandMark';
 import { FinanceStrip } from './components/FinanceStrip';
 import { PanelLayoutToggles } from './components/PanelLayoutToggles';
 import { CopilotNavButton } from './components/CopilotNavButton';
 import { CopilotSidebar } from './components/CopilotSidebar';
+import { RagChatBubble } from './components/RagChatBubble';
 import { HelpModal, HelpNavButton } from './components/HelpModal';
+import { ToastStack } from './components/ToastStack';
+import { useToasts } from './hooks/useToasts';
 
 export default function App() {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -61,14 +67,14 @@ export default function App() {
   const [columns, setColumns] = useState<string[]>([]);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [runLoading, setRunLoading] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toasts, showError, showSuccess, dismiss: dismissToast } = useToasts();
   const [result, setResult] = useState<PipelineResult | null>(null);
-  const [lastAiCode, setLastAiCode] = useState<string | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [showBottomPanel, setShowBottomPanel] = useState(true);
   const [showCopilot, setShowCopilot] = useState(false);
+  const [showRagChat, setShowRagChat] = useState(false);
+  const [indexedDocs, setIndexedDocs] = useState<{ id: string; label: string }[]>([]);
   const [showHelp, setShowHelp] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
 
@@ -97,7 +103,6 @@ export default function App() {
   );
 
   const handleCsvImport = async (nodeId: string, file: File) => {
-    setError(null);
     setUploadLoading(true);
     try {
       const res = await uploadCsv(file);
@@ -130,25 +135,24 @@ export default function App() {
         });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur import CSV');
+      showError(e instanceof Error ? e.message : 'Erreur import CSV');
     } finally {
       setUploadLoading(false);
     }
   };
 
   const handleRun = async () => {
-    setError(null);
     setResult(null);
 
     const validationError = validatePipelineBeforeRun(nodes, edges, columns);
     if (validationError) {
-      setError(validationError);
+      showError(validationError);
       return;
     }
 
     const fileId = getCsvFileIdFromNodes(nodes);
     if (!fileId) {
-      setError('Importez un CSV via le nœud CSV sélectionné.');
+      showError('Importez un CSV via le nœud CSV sélectionné.');
       return;
     }
 
@@ -158,35 +162,74 @@ export default function App() {
 
     setRunLoading(true);
     try {
-      const pipelineResult = await runPipeline(
+      let pipelineResult = await runPipeline(
         buildPipelineRequest(nodes, edges, vizNode?.id),
       );
+
+      if (vizNode && pipelineResult.result_type === 'pie_chart') {
+        const pieParams = getPieParamsFromNode((vizNode.data as BlockNodeData).params ?? {});
+        if (pieParams) {
+          pipelineResult = await repairPieChartResult(pipelineResult, {
+            vizNodeId: vizNode.id,
+            pieParams,
+            fetchTableOutput: () => {
+              const tableNodes = nodes.map((n) => {
+                if (n.id !== vizNode.id) return n;
+                const d = n.data as BlockNodeData;
+                return { ...n, data: { ...d, blockType: 'table' as const } };
+              });
+              return runPipeline(buildPipelineRequest(tableNodes, edges, vizNode.id));
+            },
+          });
+        }
+      }
+
       setResult(pipelineResult);
       setResultsOpen(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur exécution');
-      setResultsOpen(true);
+      showError(e instanceof Error ? e.message : 'Erreur exécution');
     } finally {
       setRunLoading(false);
     }
   };
 
-  const handleAiGenerate = async (description: string) => {
-    setAiLoading(true);
-    setError(null);
-    try {
-      const res = await generateTransformation(description, columns);
-      setLastAiCode(res.code);
-      if (res.block_type) {
-        const newNode = createBlockNode(res.block_type, { x: 280, y: 120 + nodes.length * 40 }, res.params);
-        setNodes((nds) => nds.concat(newNode));
+  const handleAiTransformations = useCallback(
+    (blocks: ParsedBlock[]) => {
+      if (blocks.length === 0) return;
+
+      const { nodes: nextNodes, edges: nextEdges, addedNodeIds } = appendBlocksToPipeline(
+        nodes,
+        edges,
+        blocks,
+      );
+
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+
+      if (addedNodeIds.length > 0) {
+        const lastNode = nextNodes.find((n) => n.id === addedNodeIds.at(-1));
+        const label = (lastNode?.data as BlockNodeData | undefined)?.label ?? 'Bloc';
+        const countLabel =
+          blocks.length > 1
+            ? `${blocks.length} blocs ajoutés au pipeline`
+            : `« ${label} » ajouté au pipeline`;
+        showSuccess(countLabel);
+        setSelectedNode(lastNode ?? null);
       }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erreur IA');
-    } finally {
-      setAiLoading(false);
-    }
-  };
+    },
+    [nodes, edges, showSuccess],
+  );
+
+  const handleDocIndexed = useCallback(
+    (docId: string, label: string) => {
+      setIndexedDocs((prev) =>
+        prev.some((d) => d.id === docId) ? prev : [...prev, { id: docId, label }],
+      );
+      setShowRagChat(true);
+      showSuccess('Document indexé — posez vos questions dans l’assistant.');
+    },
+    [showSuccess],
+  );
 
   const layoutGridColumns = [
     showLeftPanel ? '280px' : null,
@@ -198,6 +241,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
       <header className="app-header">
         <div className="app-header__top">
           <div className="app-header__brand">
@@ -257,7 +301,6 @@ export default function App() {
               csvLinked={Boolean(csvFileId)}
               csvFileName={csvFileName ?? null}
               loading={runLoading}
-              error={error}
               result={result}
               resultsOpen={resultsOpen}
               onRun={handleRun}
@@ -281,12 +324,20 @@ export default function App() {
 
       {showCopilot && (
         <CopilotSidebar
-          loading={aiLoading}
-          lastCode={lastAiCode}
-          onGenerate={handleAiGenerate}
+          schema={columns}
+          onTransformations={handleAiTransformations}
+          onError={showError}
           onClose={() => setShowCopilot(false)}
         />
       )}
+
+      <RagChatBubble
+        open={showRagChat}
+        onOpenChange={setShowRagChat}
+        docs={indexedDocs}
+        onDocIndexed={(docId, label) => handleDocIndexed(docId, label)}
+        onError={showError}
+      />
       </div>
 
       <footer className="app-footer">

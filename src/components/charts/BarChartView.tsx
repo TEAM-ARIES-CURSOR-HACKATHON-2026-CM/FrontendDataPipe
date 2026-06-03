@@ -40,14 +40,21 @@ export function BarChartView({ data, xKey, yKey }: BarChartViewProps) {
         Capturer PNG
       </button>
       <div ref={ref} className="chart-view__canvas chart-view__canvas--bar">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minHeight={280}>
           <BarChart data={chartData} margin={{ top: 12, right: 16, left: 8, bottom: 48 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e0d4" />
             <XAxis dataKey={xKey} tick={{ fill: '#5c5a56', fontSize: 11 }} angle={-25} textAnchor="end" height={60} />
             <YAxis tick={{ fill: '#5c5a56', fontSize: 11 }} />
             <Tooltip
-              contentStyle={{ background: '#1a1a1a', border: '1px solid #c9a227', borderRadius: 8 }}
-              labelStyle={{ color: '#f5edd6' }}
+              contentStyle={{
+                background: '#ffffff',
+                border: '1px solid #8f7120',
+                borderRadius: 10,
+                padding: '10px 14px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
+              }}
+              labelStyle={{ color: '#1a1a1a', fontWeight: 700 }}
+              itemStyle={{ color: '#8f7120', fontWeight: 600 }}
             />
             <Bar dataKey={yKey} fill="#1a1a1a" stroke="#333" strokeWidth={0.5} radius={[4, 4, 0, 0]} />
           </BarChart>
