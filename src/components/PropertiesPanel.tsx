@@ -1,26 +1,48 @@
 import type { Node } from '@xyflow/react';
 import type { BlockNodeData, BlockParams, FilterOperator } from '../types';
 import { getBlockDef } from '../constants/blocks';
+import { BlockIcon } from '../constants/blockIcons';
+import { PALETTE_CATEGORIES } from '../constants/branding';
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
   columns: string[];
+  uploadLoading: boolean;
   onUpdateParams: (nodeId: string, params: BlockParams) => void;
   onUpdateLabel: (nodeId: string, label: string) => void;
+  onCsvImport: (nodeId: string, file: File) => void;
+  onDeleteNode: (nodeId: string) => void;
+  embedded?: boolean;
 }
 
 export function PropertiesPanel({
   selectedNode,
   columns,
+  uploadLoading,
   onUpdateParams,
   onUpdateLabel,
+  onCsvImport,
+  onDeleteNode,
+  embedded = false,
 }: PropertiesPanelProps) {
+  const Tag = embedded ? 'div' : 'aside';
+  const cls = embedded ? 'properties properties--embedded' : 'properties';
+
   if (!selectedNode) {
     return (
-      <aside className="properties">
-        <h2 className="panel-title">Propriétés</h2>
-        <p className="panel-hint">Sélectionnez un bloc sur le canevas</p>
-      </aside>
+      <Tag className={cls}>
+        {!embedded && <h2 className="panel-title">Paramètres métier</h2>}
+        <p className="panel-hint panel-hint--compact">
+          Cliquez un nœud sur le canevas. Pour le <strong>CSV</strong>, importez le fichier ici.
+        </p>
+        <ul className="properties__fields-hint">
+          <li>montant</li>
+          <li>client_id</li>
+          <li>type</li>
+          <li>agence</li>
+          <li>date</li>
+        </ul>
+      </Tag>
     );
   }
 
@@ -33,14 +55,25 @@ export function PropertiesPanel({
   };
 
   return (
-    <aside className="properties">
-      <h2 className="panel-title">Propriétés</h2>
-      <div className="properties__header" style={{ borderColor: def.color }}>
-        {def.label}
+    <Tag className={cls}>
+      {!embedded && <h2 className="panel-title">Paramètres métier</h2>}
+      <div
+        className="properties__header"
+        style={{ '--block-accent': def.color } as React.CSSProperties}
+      >
+        <span className="properties__header-icon" aria-hidden>
+          <BlockIcon type={data.blockType} />
+        </span>
+        <div className="properties__header-text">
+          <span className="properties__header-title">{def.label}</span>
+          <span className="properties__header-meta">
+            {PALETTE_CATEGORIES[def.category].title}
+          </span>
+        </div>
       </div>
 
-      <label className="field">
-        Nom du bloc
+      <label className="field field--compact">
+        Nom
         <input
           value={data.label}
           onChange={(e) => onUpdateLabel(selectedNode.id, e.target.value)}
@@ -48,15 +81,36 @@ export function PropertiesPanel({
       </label>
 
       {data.blockType === 'csv' && (
-        <p className="panel-hint">
-          Fichier : {params.file || '— utilisez la zone d\'exécution pour téléverser'}
-        </p>
+        <div className="csv-import csv-import--compact">
+          <label className="btn btn--primary csv-import__btn file-btn">
+            {uploadLoading ? 'Import…' : params.file ? 'Remplacer' : 'Importer CSV'}
+            <input
+              type="file"
+              accept=".csv"
+              hidden
+              disabled={uploadLoading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onCsvImport(selectedNode.id, f);
+                e.target.value = '';
+              }}
+            />
+          </label>
+          {params.file_id ? (
+            <p className="csv-import__status-line csv-import__status-line--ok">
+              Lié : <strong>{params.file}</strong>
+              {columns.length > 0 && ` · ${columns.length} col.`}
+            </p>
+          ) : (
+            <p className="panel-hint">Aucun fichier lié</p>
+          )}
+        </div>
       )}
 
       {data.blockType === 'filter' && (
         <>
           <ColumnSelect columns={columns} value={params.colonne ?? ''} onChange={(v) => setParam('colonne', v)} />
-          <label className="field">
+          <label className="field field--compact">
             Opérateur
             <select
               value={params.operateur ?? '>'}
@@ -69,7 +123,7 @@ export function PropertiesPanel({
               <option value="contains">contient</option>
             </select>
           </label>
-          <label className="field">
+          <label className="field field--compact">
             Valeur
             <input value={params.valeur ?? ''} onChange={(e) => setParam('valeur', e.target.value)} />
           </label>
@@ -79,7 +133,7 @@ export function PropertiesPanel({
       {data.blockType === 'group' && (
         <>
           <ColumnSelect columns={columns} value={params.colonnes_group ?? ''} onChange={(v) => setParam('colonnes_group', v)} label="Grouper par" />
-          <label className="field">
+          <label className="field field--compact">
             Agrégation
             <select
               value={params.agregation ?? 'sum'}
@@ -90,14 +144,14 @@ export function PropertiesPanel({
               <option value="count">Compte</option>
             </select>
           </label>
-          <ColumnSelect columns={columns} value={params.colonne_agr ?? ''} onChange={(v) => setParam('colonne_agr', v)} label="Colonne agrégée" />
+          <ColumnSelect columns={columns} value={params.colonne_agr ?? ''} onChange={(v) => setParam('colonne_agr', v)} label="Colonne" />
         </>
       )}
 
       {data.blockType === 'sort' && (
         <>
           <ColumnSelect columns={columns} value={params.colonne ?? ''} onChange={(v) => setParam('colonne', v)} />
-          <label className="field">
+          <label className="field field--compact">
             Ordre
             <select value={params.ordre ?? 'asc'} onChange={(e) => setParam('ordre', e.target.value as 'asc' | 'desc')}>
               <option value="asc">Croissant</option>
@@ -109,11 +163,11 @@ export function PropertiesPanel({
 
       {data.blockType === 'add_column' && (
         <>
-          <label className="field">
+          <label className="field field--compact">
             Nom colonne
             <input value={params.nom_colonne ?? ''} onChange={(e) => setParam('nom_colonne', e.target.value)} />
           </label>
-          <label className="field">
+          <label className="field field--compact">
             Formule
             <input value={params.formule ?? ''} onChange={(e) => setParam('formule', e.target.value)} placeholder="montant / 1.2" />
           </label>
@@ -135,9 +189,19 @@ export function PropertiesPanel({
       )}
 
       {data.blockType === 'table' && (
-        <p className="panel-hint">Aucun paramètre — affiche le résultat du pipeline.</p>
+        <p className="panel-hint">Sortie tableau — aucun paramètre.</p>
       )}
-    </aside>
+
+      <div className="properties__actions">
+        <button
+          type="button"
+          className="btn btn--danger btn--block"
+          onClick={() => onDeleteNode(selectedNode.id)}
+        >
+          Supprimer ce bloc
+        </button>
+      </div>
+    </Tag>
   );
 }
 
@@ -153,7 +217,7 @@ function ColumnSelect({
   label?: string;
 }) {
   return (
-    <label className="field">
+    <label className="field field--compact">
       {label}
       {columns.length > 0 ? (
         <select value={value} onChange={(e) => onChange(e.target.value)}>

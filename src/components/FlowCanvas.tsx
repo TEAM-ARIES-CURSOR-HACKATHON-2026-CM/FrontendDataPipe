@@ -1,26 +1,41 @@
 import { useCallback, useRef } from 'react';
 import {
   ReactFlow,
-  Background,
   Controls,
   MiniMap,
   addEdge,
-  useNodesState,
-  useEdgesState,
   type Connection,
   type Edge,
   type Node,
   type OnConnect,
   ReactFlowProvider,
+  PanOnScrollMode,
   useReactFlow,
+  type OnNodesChange,
+  type OnEdgesChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { BlockNodeData, BlockParams, BlockType } from '../types';
 import { BlockNode } from './nodes/BlockNode';
+import { PipelineEdge } from './edges/PipelineEdge';
+import { FlowMarkers } from './background/FlowMarkers';
 import { getBlockDef } from '../constants/blocks';
 import { isValidConnection } from '../utils/pipelineValidation';
 
 const nodeTypes = { block: BlockNode };
+const edgeTypes = { pipeline: PipelineEdge };
+
+const defaultEdgeOptions = {
+  type: 'pipeline' as const,
+  animated: false,
+  interactionWidth: 20,
+};
+
+const connectionLineStyle = {
+  stroke: '#1a1a1a',
+  strokeWidth: 2,
+  strokeDasharray: '6 4',
+};
 
 let nodeId = 0;
 const nextId = () => `node_${++nodeId}`;
@@ -28,8 +43,8 @@ const nextId = () => `node_${++nodeId}`;
 interface FlowCanvasInnerProps {
   nodes: Node[];
   edges: Edge[];
-  onNodesChange: ReturnType<typeof useNodesState>[2];
-  onEdgesChange: ReturnType<typeof useEdgesState>[2];
+  onNodesChange: OnNodesChange;
+  onEdgesChange: OnEdgesChange;
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   onSelectionChange: (node: Node | null) => void;
@@ -52,7 +67,16 @@ function FlowCanvasInner({
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
       if (!isValidConnection(connection, nodes, edges)) return;
-      setEdges((eds) => addEdge({ ...connection, id: `e-${connection.source}-${connection.target}` }, eds));
+      setEdges((eds) =>
+        addEdge(
+          {
+            ...connection,
+            id: `e-${connection.source}-${connection.target}`,
+            type: 'pipeline',
+          },
+          eds,
+        ),
+      );
     },
     [nodes, edges, setEdges],
   );
@@ -97,14 +121,28 @@ function FlowCanvasInner({
   );
 
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => onSelectionChange(node),
-    [onSelectionChange],
+    (_: React.MouseEvent, node: Node) => {
+      setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === node.id })));
+      onSelectionChange(node);
+    },
+    [setNodes, onSelectionChange],
   );
 
-  const onPaneClick = useCallback(() => onSelectionChange(null), [onSelectionChange]);
+  const onPaneClick = useCallback(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+    onSelectionChange(null);
+  }, [setNodes, onSelectionChange]);
 
   return (
     <div className="flow-canvas" ref={reactFlowWrapper}>
+      <div className="flow-canvas__notebook" aria-hidden />
+      <FlowMarkers />
+      {nodes.length === 0 && (
+        <div className="flow-canvas__empty">
+          <p><strong>Canevas vide</strong></p>
+          <p>Glissez un bloc <strong>CSV</strong> depuis la palette à gauche, puis connectez vos transformations.</p>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -117,13 +155,37 @@ function FlowCanvasInner({
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
-        fitView
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        connectionLineStyle={connectionLineStyle}
+        fitView={nodes.length > 0}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        translateExtent={[
+          [-4000, -4000],
+          [4000, 4000],
+        ]}
+        minZoom={0.2}
+        maxZoom={2}
+        panOnDrag
+        panOnScroll
+        panOnScrollMode={PanOnScrollMode.Free}
+        panOnScrollSpeed={0.85}
+        zoomOnScroll={false}
+        zoomOnPinch
+        zoomOnDoubleClick={false}
         deleteKeyCode={['Backspace', 'Delete']}
-        defaultEdgeOptions={{ animated: true, style: { stroke: '#64748b' } }}
+        proOptions={{ hideAttribution: true }}
+        className="datapipe-flow"
       >
-        <Background gap={20} color="#1e293b" />
-        <Controls />
-        <MiniMap nodeColor={(n) => getBlockDef((n.data as BlockNodeData).blockType).color} />
+        <Controls className="flow-controls" showInteractive={false} />
+        <MiniMap
+          className="flow-minimap"
+          nodeColor={(n) => {
+            const t = (n.data as BlockNodeData | undefined)?.blockType;
+            return t ? getBlockDef(t).color : '#1a1a1a';
+          }}
+          maskColor="rgba(26, 26, 26, 0.08)"
+        />
       </ReactFlow>
     </div>
   );
@@ -137,7 +199,11 @@ export function FlowCanvas(props: FlowCanvasInnerProps) {
   );
 }
 
-export function createBlockNode(blockType: BlockType, position: { x: number; y: number }, params?: BlockParams): Node {
+export function createBlockNode(
+  blockType: BlockType,
+  position: { x: number; y: number },
+  params?: BlockParams,
+): Node {
   const def = getBlockDef(blockType);
   return {
     id: nextId(),

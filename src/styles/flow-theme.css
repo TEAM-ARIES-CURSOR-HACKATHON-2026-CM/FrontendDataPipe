@@ -1,0 +1,171 @@
+/* —— Canevas type cahier (quadrillage) —— */
+.flow-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+
+.flow-canvas__empty {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -40%);
+  text-align: center;
+  max-width: 320px;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  pointer-events: none;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.flow-canvas__empty p {
+  margin: 0 0 8px;
+}
+
+.datapipe-flow,
+.datapipe-flow.react-flow {
+  flex: 1 1 auto;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.flow-canvas__notebook {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-fine) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-fine) 1px, transparent 1px),
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    repeating-linear-gradient(
+      -35deg,
+      transparent,
+      transparent 80px,
+      rgba(0, 0, 0, 0.02) 80px,
+      rgba(0, 0, 0, 0.02) 81px
+    );
+  background-size:
+    14px 14px,
+    14px 14px,
+    70px 70px,
+    70px 70px,
+    auto;
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.02);
+}
+
+.flow-canvas__notebook::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 56px;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(184, 148, 46, 0.35) 8%,
+    rgba(184, 148, 46, 0.35) 92%,
+    transparent 100%
+  );
+  box-shadow: 1px 0 0 rgba(154, 123, 26, 0.12);
+}
+
+.flow-canvas__notebook::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), transparent);
+  pointer-events: none;
+}
+
+.flow-markers-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.datapipe-flow {
+  z-index: 1;
+  background: transparent !important;
+}
+
+.datapipe-flow .react-flow__pane {
+  cursor: grab;
+}
+
+.datapipe-flow .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.datapipe-flow .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+
+.datapipe-flow .react-flow__edge.selectable:focus,
+.datapipe-flow .react-flow__edge.selectable:focus-visible {
+  outline: none;
+}
+
+.pipeline-edge__main--selected {
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.35));
+}
+
+.datapipe-flow .react-flow__connection-path {
+  stroke: var(--black-soft) !important;
+  stroke-width: 2.5 !important;
+}
+
+/* —— Contrôles & minimap —— */
+.flow-controls {
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft) !important;
+  background: var(--white) !important;
+}
+
+.flow-controls button {
+  background: var(--white) !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  color: var(--black) !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.flow-controls button:hover {
+  background: var(--accent-subtle) !important;
+}
+
+.flow-controls button svg {
+  fill: var(--black) !important;
+}
+
+.flow-minimap {
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: var(--shadow-soft) !important;
+}
+
+.flow-minimap .react-flow__minimap-mask {
+  fill: rgba(0, 0, 0, 0.08) !important;
+}

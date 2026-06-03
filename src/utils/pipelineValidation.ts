@@ -1,6 +1,7 @@
 import type { Connection, Edge, Node } from '@xyflow/react';
 import type { BlockNodeData, BlockType } from '../types';
 import { isTransformType, isVizType } from '../constants/blocks';
+import { validatePipelineColumns } from './pipelineColumns';
 
 function getBlockType(node: Node | undefined): BlockType | undefined {
   return (node?.data as BlockNodeData | undefined)?.blockType;
@@ -59,10 +60,19 @@ function createsCycle(connection: Connection, edges: Edge[]): boolean {
   return false;
 }
 
-export function validatePipelineBeforeRun(nodes: Node[], edges: Edge[]): string | null {
+export function validatePipelineBeforeRun(
+  nodes: Node[],
+  edges: Edge[],
+  uploadColumns: string[] = [],
+): string | null {
   const csvNodes = nodes.filter((n) => (n.data as BlockNodeData).blockType === 'csv');
   if (csvNodes.length === 0) return 'Ajoutez un bloc CSV.';
   if (csvNodes.length > 1) return 'Un seul bloc CSV est autorisé.';
+
+  const csvParams = (csvNodes[0].data as BlockNodeData | undefined)?.params;
+  if (!csvParams?.file_id) {
+    return 'Sélectionnez le nœud CSV sur le canevas et importez un fichier.';
+  }
 
   const vizNodes = nodes.filter((n) => isVizType((n.data as BlockNodeData).blockType));
   if (vizNodes.length === 0) return 'Ajoutez un bloc de visualisation (tableau ou graphique).';
@@ -85,6 +95,9 @@ export function validatePipelineBeforeRun(nodes: Node[], edges: Edge[]): string 
 
   const orphan = nodes.find((n) => !reachable.has(n.id));
   if (orphan) return `Le bloc « ${(orphan.data as BlockNodeData).label} » n'est pas connecté au pipeline.`;
+
+  const columnError = validatePipelineColumns(nodes, edges, uploadColumns);
+  if (columnError) return columnError;
 
   return null;
 }

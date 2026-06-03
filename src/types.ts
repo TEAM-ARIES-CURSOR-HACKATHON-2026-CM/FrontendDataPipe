@@ -15,6 +15,8 @@ export type FilterOperator = '>' | '<' | '=' | '!=' | 'contains';
 
 export interface BlockParams {
   file?: string;
+  /** Identifiant renvoyé par POST /upload — lié à ce nœud CSV */
+  file_id?: string;
   colonne?: string;
   operateur?: FilterOperator;
   valeur?: string;
@@ -44,7 +46,6 @@ export interface PipelineNodePayload {
 }
 
 export interface PipelineEdgePayload {
-  id: string;
   source: string;
   target: string;
 }
@@ -52,7 +53,6 @@ export interface PipelineEdgePayload {
 export interface PipelinePayload {
   nodes: PipelineNodePayload[];
   edges: PipelineEdgePayload[];
-  file_id?: string;
   output_node_id?: string;
 }
 
@@ -62,6 +62,7 @@ export interface PipelineResult {
   result_type: ResultType;
   data: Record<string, unknown>[];
   chart?: { xKey?: string; yKey?: string; categoryKey?: string; valueKey?: string };
+  row_count?: number;
   error?: string;
 }
 

@@ -27,7 +27,7 @@ export function BarChartView({ data, xKey, yKey }: BarChartViewProps) {
 
   const capturePng = async () => {
     if (!ref.current) return;
-    const url = await htmlToImage.toPng(ref.current, { backgroundColor: '#0f172a' });
+    const url = await htmlToImage.toPng(ref.current, { backgroundColor: '#ffffff' });
     const link = document.createElement('a');
     link.download = 'datapipe-barres.png';
     link.href = url;
@@ -39,17 +39,17 @@ export function BarChartView({ data, xKey, yKey }: BarChartViewProps) {
       <button type="button" className="btn btn--secondary btn--sm" onClick={capturePng}>
         Capturer PNG
       </button>
-      <div ref={ref} className="chart-view__canvas">
-        <ResponsiveContainer width="100%" height={320}>
+      <div ref={ref} className="chart-view__canvas chart-view__canvas--bar">
+        <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 12, right: 16, left: 8, bottom: 48 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey={xKey} tick={{ fill: '#94a3b8', fontSize: 11 }} angle={-25} textAnchor="end" height={60} />
-            <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e0d4" />
+            <XAxis dataKey={xKey} tick={{ fill: '#5c5a56', fontSize: 11 }} angle={-25} textAnchor="end" height={60} />
+            <YAxis tick={{ fill: '#5c5a56', fontSize: 11 }} />
             <Tooltip
-              contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-              labelStyle={{ color: '#e2e8f0' }}
+              contentStyle={{ background: '#1a1a1a', border: '1px solid #c9a227', borderRadius: 8 }}
+              labelStyle={{ color: '#f5edd6' }}
             />
-            <Bar dataKey={yKey} fill="#f59e0b" radius={[4, 4, 0, 0]} />
+            <Bar dataKey={yKey} fill="#1a1a1a" stroke="#333" strokeWidth={0.5} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
