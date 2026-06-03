@@ -4,6 +4,8 @@ import type { BlockType } from '../types';
 export function getBlockParamTags(type: BlockType): string[] {
   switch (type) {
     case 'csv':
+    case 'json':
+    case 'sql':
       return ['fichier'];
     case 'filter':
       return ['colonne', 'opérateur', 'valeur'];

@@ -1,6 +1,7 @@
 import type { Connection, Edge, Node } from '@xyflow/react';
 import type { BlockNodeData, BlockType } from '../types';
-import { isTransformType, isVizType } from '../constants/blocks';
+import { isSourceType, isTransformType, isVizType } from '../constants/blocks';
+import { SOURCE_FORMATS_LABEL } from '../constants/branding';
 import { validatePipelineColumns } from './pipelineColumns';
 
 function getBlockType(node: Node | undefined): BlockType | undefined {
@@ -19,10 +20,10 @@ export function isValidConnection(
 
   if (!sourceType || !targetType || source?.id === target?.id) return false;
 
-  if (targetType === 'csv') return false;
+  if (isSourceType(targetType)) return false;
   if (isVizType(sourceType)) return false;
 
-  if (sourceType === 'csv') {
+  if (isSourceType(sourceType)) {
     return isTransformType(targetType) || isVizType(targetType);
   }
 
@@ -65,13 +66,13 @@ export function validatePipelineBeforeRun(
   edges: Edge[],
   uploadColumns: string[] = [],
 ): string | null {
-  const csvNodes = nodes.filter((n) => (n.data as BlockNodeData).blockType === 'csv');
-  if (csvNodes.length === 0) return 'Ajoutez un bloc CSV.';
-  if (csvNodes.length > 1) return 'Un seul bloc CSV est autorisé.';
+  const sourceNodes = nodes.filter((n) => isSourceType((n.data as BlockNodeData).blockType));
+  if (sourceNodes.length === 0) return `Ajoutez un bloc source (${SOURCE_FORMATS_LABEL}).`;
+  if (sourceNodes.length > 1) return `Un seul bloc source (${SOURCE_FORMATS_LABEL}) est autorisé.`;
 
-  const csvParams = (csvNodes[0].data as BlockNodeData | undefined)?.params;
-  if (!csvParams?.file_id) {
-    return 'Sélectionnez le nœud CSV sur le canevas et importez un fichier.';
+  const sourceParams = (sourceNodes[0].data as BlockNodeData | undefined)?.params;
+  if (!sourceParams?.file_id) {
+    return `Sélectionnez le bloc source et importez un fichier (${SOURCE_FORMATS_LABEL}).`;
   }
 
   const vizNodes = nodes.filter((n) => isVizType((n.data as BlockNodeData).blockType));
@@ -85,7 +86,7 @@ export function validatePipelineBeforeRun(
   }
 
   const reachable = new Set<string>();
-  const queue = [csvNodes[0].id];
+  const queue = [sourceNodes[0].id];
   while (queue.length) {
     const id = queue.shift()!;
     if (reachable.has(id)) continue;

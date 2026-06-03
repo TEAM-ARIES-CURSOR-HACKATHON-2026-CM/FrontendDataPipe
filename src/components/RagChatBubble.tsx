@@ -273,6 +273,7 @@ export function RagChatBubble({
       <button
         type="button"
         className={`rag-chat__fab ${open ? 'rag-chat__fab--open' : ''}`}
+        data-tour="rag-fab"
         onClick={() => onOpenChange(!open)}
         aria-expanded={open}
         aria-label={open ? 'Fermer l’assistant documents' : 'Ouvrir l’assistant documents RAG'}

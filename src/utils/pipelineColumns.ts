@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import type { BlockNodeData, BlockParams, BlockType } from '../types';
-import { isVizType } from '../constants/blocks';
+import { isSourceType, isVizType } from '../constants/blocks';
 
 function splitCols(value: string | undefined): string[] {
   if (!value?.trim()) return [];
@@ -32,6 +32,8 @@ export function getOutputColumns(
 ): string[] {
   switch (blockType) {
     case 'csv':
+    case 'json':
+    case 'sql':
     case 'filter':
     case 'sort':
     case 'table':
@@ -122,10 +124,10 @@ export function getColumnsAtNode(
   edges: Edge[],
   uploadColumns: string[],
 ): string[] | null {
-  const csvNode = nodes.find((n) => (n.data as BlockNodeData).blockType === 'csv');
-  if (!csvNode || uploadColumns.length === 0) return null;
+  const sourceNode = nodes.find((n) => isSourceType((n.data as BlockNodeData).blockType));
+  if (!sourceNode || uploadColumns.length === 0) return null;
 
-  const chain = buildUpstreamChain(nodeId, csvNode.id, edges);
+  const chain = buildUpstreamChain(nodeId, sourceNode.id, edges);
   if (!chain) return null;
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
@@ -153,7 +155,8 @@ export function getInputColumnsAtNode(
   const parentId = parentOf.get(nodeId);
   if (!parentId) {
     const n = nodes.find((x) => x.id === nodeId);
-    if ((n?.data as BlockNodeData | undefined)?.blockType === 'csv') {
+    const blockType = (n?.data as BlockNodeData | undefined)?.blockType;
+    if (blockType && isSourceType(blockType)) {
       return [...uploadColumns];
     }
     return null;

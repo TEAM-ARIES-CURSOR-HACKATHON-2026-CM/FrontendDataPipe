@@ -1,9 +1,10 @@
 import type { PipelineResult } from '../types';
+import { SOURCE_FORMATS_LABEL } from '../constants/branding';
 import { ResultsPanel } from './ResultsPanel';
 
 interface ExecutionPanelProps {
-  csvLinked: boolean;
-  csvFileName: string | null;
+  sourceLinked: boolean;
+  sourceFileName: string | null;
   loading: boolean;
   result: PipelineResult | null;
   resultsOpen: boolean;
@@ -12,8 +13,8 @@ interface ExecutionPanelProps {
 }
 
 export function ExecutionPanel({
-  csvLinked,
-  csvFileName,
+  sourceLinked,
+  sourceFileName,
   loading,
   result,
   resultsOpen,
@@ -28,16 +29,16 @@ export function ExecutionPanel({
         <ResultsPanel result={result} onClose={onToggleResults} />
       )}
 
-      <div className="execution-dock">
+      <div className="execution-dock" data-tour="execution">
         <div className="execution-dock__info">
           <span className="execution-dock__label">Pipeline</span>
           <span className="execution-dock__hint">
-            {csvLinked ? (
+            {sourceLinked ? (
               <>
-                Source : <strong>{csvFileName}</strong>
+                Source : <strong>{sourceFileName}</strong>
               </>
             ) : (
-              <>Importez un CSV via le nœud sélectionné</>
+              <>Importez un fichier ({SOURCE_FORMATS_LABEL}) via le bloc source</>
             )}
           </span>
         </div>
@@ -56,7 +57,7 @@ export function ExecutionPanel({
             type="button"
             className="btn btn--primary"
             onClick={onRun}
-            disabled={loading || !csvLinked}
+            disabled={loading || !sourceLinked}
           >
             {loading ? 'Traitement…' : 'Valider le pipeline'}
           </button>

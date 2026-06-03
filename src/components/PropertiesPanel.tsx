@@ -1,8 +1,9 @@
 import type { Node } from '@xyflow/react';
 import type { BlockNodeData, BlockParams, FilterOperator } from '../types';
-import { getBlockDef } from '../constants/blocks';
+import type { SourceBlockTypeConst } from '../constants/blocks';
+import { getBlockDef, isSourceType } from '../constants/blocks';
 import { BlockIcon } from '../constants/blockIcons';
-import { PALETTE_CATEGORIES } from '../constants/branding';
+import { PALETTE_CATEGORIES, SOURCE_FORMATS_LABEL } from '../constants/branding';
 import { AddColumnFields } from './AddColumnFields';
 
 interface PropertiesPanelProps {
@@ -11,10 +12,16 @@ interface PropertiesPanelProps {
   uploadLoading: boolean;
   onUpdateParams: (nodeId: string, params: BlockParams) => void;
   onUpdateLabel: (nodeId: string, label: string) => void;
-  onCsvImport: (nodeId: string, file: File) => void;
+  onSourceImport: (nodeId: string, file: File) => void;
   onDeleteNode: (nodeId: string) => void;
   embedded?: boolean;
 }
+
+const SOURCE_ACCEPT: Record<SourceBlockTypeConst, string> = {
+  csv: '.csv,text/csv',
+  json: '.json,application/json',
+  sql: '.sql,text/plain,text/sql',
+};
 
 export function PropertiesPanel({
   selectedNode,
@@ -22,7 +29,7 @@ export function PropertiesPanel({
   uploadLoading,
   onUpdateParams,
   onUpdateLabel,
-  onCsvImport,
+  onSourceImport,
   onDeleteNode,
   embedded = false,
 }: PropertiesPanelProps) {
@@ -34,7 +41,7 @@ export function PropertiesPanel({
       <Tag className={cls}>
         {!embedded && <h2 className="panel-title">Paramètres métier</h2>}
         <p className="panel-hint panel-hint--compact">
-          Cliquez un nœud sur le canevas. Pour le <strong>CSV</strong>, importez le fichier ici.
+          Cliquez un nœud sur le canevas. Pour une source ({SOURCE_FORMATS_LABEL}), importez le fichier ici.
         </p>
         <ul className="properties__fields-hint">
           <li>montant</li>
@@ -54,6 +61,8 @@ export function PropertiesPanel({
   const setParam = <K extends keyof BlockParams>(key: K, value: BlockParams[K]) => {
     onUpdateParams(selectedNode.id, { ...params, [key]: value });
   };
+
+  const isSourceBlock = isSourceType(data.blockType);
 
   return (
     <Tag className={cls}>
@@ -81,18 +90,18 @@ export function PropertiesPanel({
         />
       </label>
 
-      {data.blockType === 'csv' && (
+      {isSourceBlock && (
         <div className="csv-import csv-import--compact">
           <label className="btn btn--primary csv-import__btn file-btn">
-            {uploadLoading ? 'Import…' : params.file ? 'Remplacer' : 'Importer CSV'}
+            {uploadLoading ? 'Import…' : params.file ? 'Remplacer' : `Importer ${def.label}`}
             <input
               type="file"
-              accept=".csv"
+              accept={SOURCE_ACCEPT[data.blockType as SourceBlockTypeConst]}
               hidden
               disabled={uploadLoading}
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) onCsvImport(selectedNode.id, f);
+                if (f) onSourceImport(selectedNode.id, f);
                 e.target.value = '';
               }}
             />
@@ -104,6 +113,13 @@ export function PropertiesPanel({
             </p>
           ) : (
             <p className="panel-hint">Aucun fichier lié</p>
+          )}
+          {data.blockType === 'sql' && (
+            <p className="panel-hint panel-hint--compact sql-import__hint">
+              Script SQL avec <strong>CREATE TABLE</strong> + <strong>INSERT</strong>, ou une requête{' '}
+              <strong>SELECT</strong> autonome. Évitez un SELECT sur une table non créée dans le fichier.
+              Démo : <code>data/transactions.sql</code>.
+            </p>
           )}
         </div>
       )}

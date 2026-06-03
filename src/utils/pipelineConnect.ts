@@ -1,6 +1,6 @@
 import type { Connection, Edge, Node } from '@xyflow/react';
 import type { BlockNodeData } from '../types';
-import { isTransformType, isVizType } from '../constants/blocks';
+import { isSourceType, isTransformType, isVizType } from '../constants/blocks';
 import { createBlockNode } from '../components/FlowCanvas';
 import { isValidConnection } from './pipelineValidation';
 import type { ParsedBlock } from './pandasToBlock';
@@ -11,8 +11,8 @@ function getBlockType(node: Node | undefined): BlockNodeData['blockType'] | unde
 
 /** Dernière transformation de la chaîne principale (avant les visualisations). */
 export function findPipelineAttachNode(nodes: Node[], edges: Edge[]): string | null {
-  const csvNode = nodes.find((n) => getBlockType(n) === 'csv');
-  if (!csvNode) {
+  const sourceNode = nodes.find((n) => isSourceType(getBlockType(n)!));
+  if (!sourceNode) {
     const transforms = nodes.filter((n) => {
       const t = getBlockType(n);
       return t && isTransformType(t);
@@ -21,8 +21,8 @@ export function findPipelineAttachNode(nodes: Node[], edges: Edge[]): string | n
   }
 
   const depths = new Map<string, number>();
-  depths.set(csvNode.id, 0);
-  const queue = [csvNode.id];
+  depths.set(sourceNode.id, 0);
+  const queue = [sourceNode.id];
 
   while (queue.length) {
     const id = queue.shift()!;
@@ -36,7 +36,7 @@ export function findPipelineAttachNode(nodes: Node[], edges: Edge[]): string | n
     }
   }
 
-  let bestId: string = csvNode.id;
+  let bestId: string = sourceNode.id;
   let bestDepth = 0;
 
   for (const [id, depth] of depths) {

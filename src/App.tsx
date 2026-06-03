@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -9,7 +9,7 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
 } from '@xyflow/react';
-import { uploadCsv, runPipeline, buildPipelineRequest } from './api/client';
+import { uploadDataFile, runPipeline, buildPipelineRequest } from './api/client';
 import type { BlockNodeData, PipelineResult } from './types';
 import { Palette } from './components/Palette';
 import { FlowCanvas, handlePaletteDragStart } from './components/FlowCanvas';
@@ -19,10 +19,11 @@ import { validatePipelineBeforeRun } from './utils/pipelineValidation';
 import { getInputColumnsAtNode } from './utils/pipelineColumns';
 import { isVizType } from './constants/blocks';
 import { getPieParamsFromNode, repairPieChartResult } from './utils/chartData';
-import { getCsvFileIdFromNodes, getCsvFileNameFromNodes } from './utils/csvNode';
+import { getSourceFileIdFromNodes, getSourceFileNameFromNodes } from './utils/sourceNode';
+import { formatSourceImportError } from './utils/sourceImport';
 import { appendBlocksToPipeline } from './utils/pipelineConnect';
 import type { ParsedBlock } from './utils/pandasToBlock';
-import { BRAND } from './constants/branding';
+import { BRAND, SOURCE_FORMATS_LABEL } from './constants/branding';
 import { BrandMark } from './components/BrandMark';
 import { FinanceStrip } from './components/FinanceStrip';
 import { PanelLayoutToggles } from './components/PanelLayoutToggles';
@@ -30,6 +31,10 @@ import { CopilotNavButton } from './components/CopilotNavButton';
 import { CopilotSidebar } from './components/CopilotSidebar';
 import { RagChatBubble } from './components/RagChatBubble';
 import { HelpModal, HelpNavButton } from './components/HelpModal';
+import { IntroLandingDrawer, IntroNavButton } from './components/IntroLandingDrawer';
+import { OnboardingTour } from './components/OnboardingTour';
+import type { OnboardingAction } from './constants/guide';
+import { shouldShowIntro } from './constants/intro';
 import { ToastStack } from './components/ToastStack';
 import { useToasts } from './hooks/useToasts';
 
@@ -76,10 +81,62 @@ export default function App() {
   const [showRagChat, setShowRagChat] = useState(false);
   const [indexedDocs, setIndexedDocs] = useState<{ id: string; label: string }[]>([]);
   const [showHelp, setShowHelp] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
 
-  const csvFileId = useMemo(() => getCsvFileIdFromNodes(nodes), [nodes]);
-  const csvFileName = useMemo(() => getCsvFileNameFromNodes(nodes), [nodes]);
+  useEffect(() => {
+    if (!shouldShowIntro()) return;
+    const timer = window.setTimeout(() => setShowIntro(true), 350);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const handleIntroEnter = useCallback(({ withGuide }: { withGuide: boolean }) => {
+    setShowIntro(false);
+    if (withGuide) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleOnboardingAction = useCallback((action: OnboardingAction) => {
+    switch (action) {
+      case 'show-all-panels':
+        setShowLeftPanel(true);
+        setShowRightPanel(true);
+        setShowBottomPanel(true);
+        break;
+      case 'show-palette':
+        setShowLeftPanel(true);
+        break;
+      case 'show-params':
+        setShowRightPanel(true);
+        break;
+      case 'show-run':
+        setShowBottomPanel(true);
+        break;
+      case 'open-copilot':
+        setShowCopilot(true);
+        setShowRagChat(false);
+        break;
+      case 'close-copilot':
+        setShowCopilot(false);
+        break;
+      case 'open-rag':
+        setShowRagChat(true);
+        setShowCopilot(false);
+        break;
+      case 'close-rag':
+        setShowRagChat(false);
+        break;
+      default:
+        break;
+    }
+  }, []);
+
+  const tourLayoutKey = `${showLeftPanel}-${showRightPanel}-${showBottomPanel}-${showCopilot}-${showRagChat}`;
+
+  const sourceFileId = useMemo(() => getSourceFileIdFromNodes(nodes), [nodes]);
+  const sourceFileName = useMemo(() => getSourceFileNameFromNodes(nodes), [nodes]);
 
   const paramColumns = useMemo(() => {
     if (!selectedNode || columns.length === 0) return columns;
@@ -102,10 +159,10 @@ export default function App() {
     [setNodes, selectedNode],
   );
 
-  const handleCsvImport = async (nodeId: string, file: File) => {
+  const handleSourceImport = async (nodeId: string, file: File) => {
     setUploadLoading(true);
     try {
-      const res = await uploadCsv(file);
+      const res = await uploadDataFile(file);
       setColumns(res.columns ?? []);
 
       const newParams = {
@@ -135,7 +192,10 @@ export default function App() {
         });
       }
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Erreur import CSV');
+      const node = nodes.find((n) => n.id === nodeId);
+      const blockType = (node?.data as BlockNodeData | undefined)?.blockType ?? 'csv';
+      const raw = e instanceof Error ? e.message : 'Erreur import fichier';
+      showError(formatSourceImportError(blockType, raw));
     } finally {
       setUploadLoading(false);
     }
@@ -150,9 +210,9 @@ export default function App() {
       return;
     }
 
-    const fileId = getCsvFileIdFromNodes(nodes);
+    const fileId = getSourceFileIdFromNodes(nodes);
     if (!fileId) {
-      showError('Importez un CSV via le nœud CSV sélectionné.');
+      showError(`Importez un fichier via le bloc source (${SOURCE_FORMATS_LABEL}).`);
       return;
     }
 
@@ -244,7 +304,7 @@ export default function App() {
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
       <header className="app-header">
         <div className="app-header__top">
-          <div className="app-header__brand">
+          <div className="app-header__brand" data-tour="header-brand">
             <div className="app-header__mark">
               <BrandMark />
             </div>
@@ -254,7 +314,7 @@ export default function App() {
               <FinanceStrip />
             </div>
           </div>
-          <div className="app-header__tools">
+          <div className="app-header__tools" data-tour="header-nav">
             <PanelLayoutToggles
               showLeft={showLeftPanel}
               showRight={showRightPanel}
@@ -263,6 +323,7 @@ export default function App() {
               onToggleRight={() => setShowRightPanel((v) => !v)}
               onToggleBottom={() => setShowBottomPanel((v) => !v)}
             />
+            <IntroNavButton onClick={() => setShowIntro(true)} />
             <HelpNavButton onClick={() => setShowHelp(true)} />
             <CopilotNavButton
               active={showCopilot}
@@ -272,7 +333,21 @@ export default function App() {
         </div>
       </header>
 
-      <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
+      <HelpModal
+        open={showHelp}
+        onClose={() => setShowHelp(false)}
+        onStartOnboarding={() => setShowOnboarding(true)}
+      />
+
+      <IntroLandingDrawer open={showIntro} onEnter={handleIntroEnter} />
+
+      <OnboardingTour
+        open={showOnboarding && !showIntro}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={() => setShowOnboarding(false)}
+        onAction={handleOnboardingAction}
+        layoutKey={tourLayoutKey}
+      />
 
       <div className="app-workspace">
       <div className="app-layout" style={{ gridTemplateColumns: layoutGridColumns }}>
@@ -298,8 +373,8 @@ export default function App() {
           />
           {showBottomPanel && (
             <ExecutionPanel
-              csvLinked={Boolean(csvFileId)}
-              csvFileName={csvFileName ?? null}
+              sourceLinked={Boolean(sourceFileId)}
+              sourceFileName={sourceFileName ?? null}
               loading={runLoading}
               result={result}
               resultsOpen={resultsOpen}
@@ -316,7 +391,7 @@ export default function App() {
             uploadLoading={uploadLoading}
             onUpdateParams={(id, params) => updateNodeData(id, { params })}
             onUpdateLabel={(id, label) => updateNodeData(id, { label })}
-            onCsvImport={handleCsvImport}
+            onSourceImport={handleSourceImport}
             onDeleteNode={deleteNode}
           />
         )}

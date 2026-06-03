@@ -20,6 +20,22 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
     defaultParams: { file: '' },
   },
   {
+    type: 'json',
+    label: 'JSON',
+    description: 'Charger un fichier JSON (tableau d’objets)',
+    category: 'source',
+    color: '#2a2a2a',
+    defaultParams: { file: '' },
+  },
+  {
+    type: 'sql',
+    label: 'SQL',
+    description: 'Script SQL : CREATE TABLE + INSERT (voir data/transactions.sql)',
+    category: 'source',
+    color: '#353535',
+    defaultParams: { file: '' },
+  },
+  {
     type: 'filter',
     label: 'Filtre',
     description: 'colonne · opérateur · valeur',
@@ -81,11 +97,17 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
   },
 ];
 
+const SOURCE_LIST = ['csv', 'json', 'sql'] as const;
 const TRANSFORM_LIST = ['filter', 'group', 'sort', 'add_column'] as const;
 const VIZ_LIST = ['table', 'bar_chart', 'pie_chart'] as const;
 
+export type SourceBlockTypeConst = (typeof SOURCE_LIST)[number];
 export type TransformBlockTypeConst = (typeof TRANSFORM_LIST)[number];
 export type VizBlockTypeConst = (typeof VIZ_LIST)[number];
+
+export function isSourceType(t: BlockType): t is SourceBlockTypeConst {
+  return (SOURCE_LIST as readonly string[]).includes(t);
+}
 
 export function isTransformType(t: BlockType): t is TransformBlockTypeConst {
   return (TRANSFORM_LIST as readonly string[]).includes(t);

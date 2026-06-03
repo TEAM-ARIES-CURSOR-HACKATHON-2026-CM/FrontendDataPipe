@@ -15,6 +15,8 @@ export function getNodeParamLines(
 ): string[] {
   switch (blockType) {
     case 'csv':
+    case 'json':
+    case 'sql':
       return params.file_id
         ? [`file: ${params.file ?? '—'}`, 'statut: lié']
         : ['file: (cliquer → importer)'];

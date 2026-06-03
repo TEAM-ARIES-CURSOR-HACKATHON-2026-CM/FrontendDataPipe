@@ -23,7 +23,7 @@ En local, `.env.development` utilise `VITE_API_URL=/api` : le proxy Vite redirig
 | Endpoint | Méthode | Description |
 |----------|---------|-------------|
 | `/health` | GET | `{ "status": "ok" }` |
-| `/upload` | POST | `multipart/form-data` champ `file` → `file_id`, `columns`, `preview`… |
+| `/upload` | POST | `multipart/form-data` champ `file` (CSV, JSON ou SQL) → `file_id`, `columns`, `preview`… |
 | `/pipeline` | POST | `{ nodes[], edges[{source,target}], output_node_id? }` → `result_type`, `data`, `chart_spec`, `row_count` |
 | `/generate` | POST | `{ description, columns? }` → `{ code, block_type?, params? }` |
 

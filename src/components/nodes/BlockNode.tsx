@@ -1,21 +1,21 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { BlockNodeData } from '../../types';
-import { getBlockDef } from '../../constants/blocks';
+import { getBlockDef, isSourceType } from '../../constants/blocks';
 import { BlockIcon } from '../../constants/blockIcons';
 import { getNodeParamLines } from '../../utils/nodeParamSummary';
 
 function BlockNodeComponent({ data, selected }: NodeProps) {
   const d = data as BlockNodeData;
   const def = getBlockDef(d.blockType);
-  const isSource = d.blockType === 'csv';
+  const isSource = isSourceType(d.blockType);
   const isViz = def.category === 'viz';
   const paramLines = getNodeParamLines(d.blockType, d.params);
-  const isCsvLoaded = d.blockType === 'csv' && Boolean(d.params.file_id);
+  const isSourceLoaded = isSource && Boolean(d.params.file_id);
 
   return (
     <div
-      className={`block-node block-node--${def.category} ${selected ? 'block-node--selected' : ''} ${isCsvLoaded ? 'block-node--csv-loaded' : ''}`}
+      className={`block-node block-node--${def.category} ${selected ? 'block-node--selected' : ''} ${isSourceLoaded ? 'block-node--csv-loaded' : ''}`}
       data-block={d.blockType}
     >
       {!isSource && (

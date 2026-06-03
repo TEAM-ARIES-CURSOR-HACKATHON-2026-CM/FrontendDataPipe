@@ -76,7 +76,7 @@ export async function checkHealth(): Promise<HealthResponseApi> {
   return res.json() as Promise<HealthResponseApi>;
 }
 
-export async function uploadCsv(
+export async function uploadDataFile(
   file: File,
 ): Promise<{ file_id: string; columns: string[]; filename?: string; row_count?: number }> {
   const form = new FormData();
@@ -91,6 +91,9 @@ export async function uploadCsv(
     row_count: data.row_count,
   };
 }
+
+/** @deprecated Utiliser uploadDataFile */
+export const uploadCsv = uploadDataFile;
 
 export async function runPipeline(payload: PipelineRequestApi): Promise<PipelineResult> {
   const res = await fetch(`${API_BASE}/pipeline`, {

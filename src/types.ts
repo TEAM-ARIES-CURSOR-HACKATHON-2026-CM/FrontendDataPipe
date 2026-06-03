@@ -1,5 +1,7 @@
 export type BlockType =
   | 'csv'
+  | 'json'
+  | 'sql'
   | 'filter'
   | 'group'
   | 'sort'
@@ -15,7 +17,7 @@ export type FilterOperator = '>' | '<' | '=' | '!=' | 'contains';
 
 export interface BlockParams {
   file?: string;
-  /** Identifiant renvoyé par POST /upload — lié à ce nœud CSV */
+  /** Identifiant renvoyé par POST /upload — lié au nœud source (CSV / JSON / SQL) */
   file_id?: string;
   colonne?: string;
   operateur?: FilterOperator;

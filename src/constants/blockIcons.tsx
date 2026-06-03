@@ -11,6 +11,21 @@ export function BlockIcon({ type }: { type: BlockType }) {
           <path d="M14 2v6h6M8 13h8M8 17h5" />
         </svg>
       );
+    case 'json':
+      return (
+        <svg {...iconProps}>
+          <path d="M8 3h8l4 4v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+          <path d="M16 3v4h4M8 12h2l1-2 1 4 1-2h2" />
+        </svg>
+      );
+    case 'sql':
+      return (
+        <svg {...iconProps}>
+          <ellipse cx="12" cy="6" rx="8" ry="3" />
+          <path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6" />
+          <path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6" />
+        </svg>
+      );
     case 'filter':
       return (
         <svg {...iconProps}>

@@ -26,6 +26,7 @@ export function CopilotNavButton({ active, onClick }: CopilotNavButtonProps) {
     <button
       type="button"
       className={`copilot-nav-btn ${active ? 'copilot-nav-btn--active' : ''}`}
+      data-tour="copilot-nav"
       aria-pressed={active}
       aria-label={active ? 'Fermer le copilote IA' : 'Ouvrir le copilote IA'}
       title={active ? 'Fermer le copilote IA' : 'Copilote IA'}

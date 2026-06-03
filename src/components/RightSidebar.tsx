@@ -8,13 +8,13 @@ interface RightSidebarProps {
   uploadLoading: boolean;
   onUpdateParams: (nodeId: string, params: BlockParams) => void;
   onUpdateLabel: (nodeId: string, label: string) => void;
-  onCsvImport: (nodeId: string, file: File) => void;
+  onSourceImport: (nodeId: string, file: File) => void;
   onDeleteNode: (nodeId: string) => void;
 }
 
 export function RightSidebar(props: RightSidebarProps) {
   return (
-    <aside className="side-panel side-panel--right">
+    <aside className="side-panel side-panel--right" data-tour="params">
       <header className="side-panel__head">
         <h2 className="side-panel__title">Paramètres</h2>
       </header>
@@ -25,7 +25,7 @@ export function RightSidebar(props: RightSidebarProps) {
           uploadLoading={props.uploadLoading}
           onUpdateParams={props.onUpdateParams}
           onUpdateLabel={props.onUpdateLabel}
-          onCsvImport={props.onCsvImport}
+          onSourceImport={props.onSourceImport}
           onDeleteNode={props.onDeleteNode}
           embedded
         />

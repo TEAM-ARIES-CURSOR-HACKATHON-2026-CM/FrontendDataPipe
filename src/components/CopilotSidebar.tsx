@@ -53,7 +53,7 @@ export function CopilotSidebar({
         aria-label="Fermer le copilote"
         onClick={onClose}
       />
-      <aside className="copilot-drawer" aria-label="Copilote IA">
+      <aside className="copilot-drawer" aria-label="Copilote IA" data-tour="copilot-drawer">
         <header className="copilot-drawer__head">
           <div className="copilot-drawer__title-wrap">
             <span className="copilot-drawer__badge" aria-hidden>

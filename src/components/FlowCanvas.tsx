@@ -134,7 +134,7 @@ function FlowCanvasInner({
   }, [setNodes, onSelectionChange]);
 
   return (
-    <div className="flow-canvas" ref={reactFlowWrapper}>
+    <div className="flow-canvas" ref={reactFlowWrapper} data-tour="canvas">
       <div className="flow-canvas__notebook" aria-hidden />
       <FlowMarkers />
       {nodes.length === 0 && (

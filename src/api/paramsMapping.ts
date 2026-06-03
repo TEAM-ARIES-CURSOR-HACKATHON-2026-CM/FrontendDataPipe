@@ -7,6 +7,8 @@ export function toApiParams(
 ): Record<string, unknown> {
   switch (blockType) {
     case 'csv':
+    case 'json':
+    case 'sql':
       return {
         ...(params.file_id ? { file_id: params.file_id } : {}),
         ...(params.file ? { file: params.file } : {}),
@@ -71,6 +73,8 @@ export function fromApiParams(
 
   switch (blockType) {
     case 'csv':
+    case 'json':
+    case 'sql':
       return {
         file_id: String(p.file_id ?? p.fileId ?? ''),
         file: String(p.file ?? p.filename ?? ''),

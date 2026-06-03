@@ -92,7 +92,7 @@ export function Palette({ onDragStart }: PaletteProps) {
   }));
 
   return (
-    <aside className="side-panel side-panel--left">
+    <aside className="side-panel side-panel--left" data-tour="palette">
       <header className="side-panel__head">
         <h2 className="side-panel__title">Blocs</h2>
         <span className="side-panel__drag">Glisser → canevas</span>
