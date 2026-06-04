@@ -33,7 +33,12 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       { title: 'Glisser un bloc CSV', detail: 'Depuis la palette gauche, déposez « CSV » sur le canevas.' },
       { title: 'Importer les transactions', detail: 'Sélectionnez le nœud CSV → panneau droit → choisir un fichier.' },
       { title: 'Enchaîner les blocs', detail: 'Filtre → Grouper → Graphique : reliez les ● entre chaque bloc.' },
-      { title: 'Valider', detail: 'Barre du bas → « Valider le pipeline » pour afficher le reporting.' },
+      { title: 'Valider', detail: 'Barre du bas → « Valider le pipeline » (ou Ctrl+Entrée) pour afficher le reporting.' },
+      {
+        title: 'Sauvegardes & modèles',
+        detail:
+          'En bas de la palette : enregistrez votre flux ou chargez un modèle métier (filtres, agrégations, graphiques).',
+      },
     ],
   },
   {
@@ -54,8 +59,9 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     subtitle: 'Sources, transformations, visualisations',
     icon: 'palette',
     tips: [
-      { title: 'Trois familles de blocs', detail: 'Sources (CSV), Contrôles & agrégations, Reporting (tableau, graphiques).' },
+      { title: 'Trois familles de blocs', detail: 'Sources (CSV, JSON, SQL), transformations et reporting (tableau, graphiques).' },
       { title: 'Ajouter au pipeline', detail: 'Glissez-déposez un bloc sur le canevas.', shortcut: 'Drag & drop' },
+      { title: 'Bibliothèque', detail: 'Bouton « Sauvegardes & modèles » : 7 pipelines types banque prêts à personnaliser.' },
       { title: 'Masquer la palette', detail: 'Icônes mise en page dans l’en-tête pour gagner de l’espace.' },
     ],
   },
@@ -66,7 +72,16 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     icon: 'params',
     tips: [
       { title: 'Panneau contextuel', detail: 'Chaque nœud sélectionné affiche ses champs métier.' },
-      { title: 'Bloc CSV', detail: 'Import obligatoire avant exécution — le schéma alimente le copilote.' },
+      {
+        title: 'Largeur du panneau',
+        detail: 'Tirez la barre verticale entre le canevas et les paramètres pour agrandir l’aperçu des données.',
+        shortcut: 'Glisser',
+      },
+      {
+        title: 'Import & aperçu',
+        detail:
+          'Après import, les colonnes et un extrait des lignes s’affichent sous le bloc source — le schéma alimente aussi le copilote.',
+      },
       { title: 'Ajouter colonne', detail: 'Assistant intégré : listes + formule générée.' },
     ],
   },
@@ -76,9 +91,17 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     subtitle: 'Résultats & export',
     icon: 'run',
     tips: [
-      { title: 'Lancer le pipeline', detail: '« Valider le pipeline » envoie le graphe au moteur Pandas.' },
+      {
+        title: 'Lancer le pipeline',
+        detail: '« Valider le pipeline » ou Ctrl+Entrée envoie le graphe au moteur Pandas.',
+        shortcut: 'Ctrl+Entrée',
+      },
+      {
+        title: 'Métriques',
+        detail: 'Après validation : nombre de lignes, transformations et durée sous les résultats.',
+      },
       { title: 'Consulter les résultats', detail: 'Tableau, barres ou secteurs — panneau repliable en bas.' },
-      { title: 'Exporter', detail: 'Téléchargement CSV du reporting depuis le tableau.' },
+      { title: 'Exporter', detail: 'CSV ou Excel depuis le reporting.' },
     ],
   },
   {
@@ -158,7 +181,7 @@ export const SPOTLIGHT_TOUR_STEPS: SpotlightTourStep[] = [
     id: 'brand',
     title: 'En-tête · Identité & navigation',
     description:
-      'Le bandeau rappelle le contexte bancaire / FinTech. À droite : mise en page des panneaux, Accueil, Aide, Copilote.',
+      'Le bandeau rappelle le contexte bancaire / FinTech. À droite : mise en page, Accueil, Aide, Copilote.',
     target: 'header-brand',
     placement: 'bottom',
     prepare: ['show-all-panels', 'close-copilot', 'close-rag'],
@@ -203,7 +226,7 @@ export const SPOTLIGHT_TOUR_STEPS: SpotlightTourStep[] = [
     id: 'execution',
     title: 'Exécution · Valider & reporter',
     description:
-      '« Valider le pipeline » lance le traitement Pandas. Les résultats s’affichent au-dessus : tableau, barres ou secteurs, avec export CSV.',
+      '« Valider le pipeline » (Ctrl+Entrée) lance Pandas. Métriques lignes / durée affichées ; export CSV ou Excel.',
     target: 'execution',
     placement: 'top',
     prepare: ['show-run', 'close-copilot', 'close-rag'],

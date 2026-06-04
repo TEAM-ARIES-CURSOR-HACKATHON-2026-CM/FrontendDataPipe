@@ -78,7 +78,13 @@ export async function checkHealth(): Promise<HealthResponseApi> {
 
 export async function uploadDataFile(
   file: File,
-): Promise<{ file_id: string; columns: string[]; filename?: string; row_count?: number }> {
+): Promise<{
+  file_id: string;
+  columns: string[];
+  filename?: string;
+  row_count?: number;
+  preview: Record<string, unknown>[];
+}> {
   const form = new FormData();
   form.append('file', file);
   const res = await fetch(`${API_BASE}/upload`, { method: 'POST', body: form });
@@ -89,6 +95,7 @@ export async function uploadDataFile(
     columns: data.columns ?? [],
     filename: data.filename,
     row_count: data.row_count,
+    preview: data.preview ?? [],
   };
 }
 

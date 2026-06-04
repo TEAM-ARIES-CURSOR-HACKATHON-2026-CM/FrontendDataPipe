@@ -1,4 +1,5 @@
-import type { PipelineResult } from '../types';
+import type { PipelineResult, PipelineRunMeta } from '../types';
+import { formatRunMetrics } from '../utils/pipelineStats';
 import {
   filterPieRows,
   resolveBarChartKeys,
@@ -11,10 +12,11 @@ import { PieChartView } from './charts/PieChartView';
 
 interface ResultsPanelProps {
   result: PipelineResult | null;
+  runMeta?: PipelineRunMeta | null;
   onClose: () => void;
 }
 
-export function ResultsPanel({ result, onClose }: ResultsPanelProps) {
+export function ResultsPanel({ result, runMeta, onClose }: ResultsPanelProps) {
   if (!result) return null;
 
   const barKeys = result?.result_type === 'bar_chart' ? resolveBarChartKeys(result) : null;
@@ -29,9 +31,11 @@ export function ResultsPanel({ result, onClose }: ResultsPanelProps) {
       <header className="results-panel__head">
         <div>
           <h3 className="results-panel__title">Résultats</h3>
-          {result?.row_count != null && (
-            <p className="results-panel__meta">{result.row_count} lignes · pipeline validé</p>
-          )}
+          {runMeta ? (
+            <p className="results-panel__meta">{formatRunMetrics(runMeta)}</p>
+          ) : result?.row_count != null ? (
+            <p className="results-panel__meta">{result.row_count} lignes</p>
+          ) : null}
         </div>
         <button type="button" className="results-panel__close" onClick={onClose} aria-label="Réduire">
           Réduire ▾

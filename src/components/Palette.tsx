@@ -7,6 +7,7 @@ import { SideTabs } from './SideTabs';
 
 interface PaletteProps {
   onDragStart: (event: React.DragEvent, blockType: BlockType) => void;
+  onOpenPipelineLibrary?: () => void;
 }
 
 const CATEGORY_KEYS = ['source', 'transform', 'viz'] as const;
@@ -83,7 +84,7 @@ function CategoryPanel({
   );
 }
 
-export function Palette({ onDragStart }: PaletteProps) {
+export function Palette({ onDragStart, onOpenPipelineLibrary }: PaletteProps) {
   const tabs = CATEGORY_KEYS.map((key) => ({
     id: key,
     label: TAB_LABELS[key].label,
@@ -103,6 +104,17 @@ export function Palette({ onDragStart }: PaletteProps) {
         ariaLabel="Catégories de blocs"
         className="side-tabs--blocks"
       />
+      {onOpenPipelineLibrary && (
+        <footer className="palette-panel__footer">
+          <button
+            type="button"
+            className="btn btn--secondary btn--sm palette-panel__library-btn"
+            onClick={onOpenPipelineLibrary}
+          >
+            Sauvegardes & modèles
+          </button>
+        </footer>
+      )}
     </aside>
   );
 }

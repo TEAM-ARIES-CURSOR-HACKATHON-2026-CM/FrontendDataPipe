@@ -68,3 +68,10 @@ export interface PipelineResult {
   error?: string;
 }
 
+/** Métadonnées affichées après validation du pipeline. */
+export interface PipelineRunMeta {
+  durationMs: number;
+  rowCount: number;
+  transformCount: number;
+}
+

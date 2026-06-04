@@ -53,6 +53,7 @@ export function useToasts(durationMs = DEFAULT_DURATION_MS) {
 
   const showError = useCallback((message: string) => push(message, 'error'), [push]);
   const showSuccess = useCallback((message: string) => push(message, 'success'), [push]);
+  const showInfo = useCallback((message: string) => push(message, 'info'), [push]);
 
-  return { toasts, push, showError, showSuccess, dismiss };
+  return { toasts, push, showError, showSuccess, showInfo, dismiss };
 }

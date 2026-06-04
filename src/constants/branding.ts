@@ -17,9 +17,3 @@ export const PALETTE_CATEGORIES = {
   viz: { title: 'Reporting analyste', hint: 'Tableaux et graphiques métier' },
 } as const;
 
-export const DEMO_PIPELINE_LABELS = {
-  csv: 'CSV',
-  filter: 'Filtre',
-  group: 'Grouper',
-  bar_chart: 'Graphique barres',
-} as const;

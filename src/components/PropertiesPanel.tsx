@@ -5,6 +5,7 @@ import { getBlockDef, isSourceType } from '../constants/blocks';
 import { BlockIcon } from '../constants/blockIcons';
 import { PALETTE_CATEGORIES, SOURCE_FORMATS_LABEL } from '../constants/branding';
 import { AddColumnFields } from './AddColumnFields';
+import { SourceDataPreview } from './SourceDataPreview';
 
 interface PropertiesPanelProps {
   selectedNode: Node | null;
@@ -15,6 +16,8 @@ interface PropertiesPanelProps {
   onSourceImport: (nodeId: string, file: File) => void;
   onDeleteNode: (nodeId: string) => void;
   embedded?: boolean;
+  sourcePreview?: Record<string, unknown>[];
+  sourceRowCount?: number;
 }
 
 const SOURCE_ACCEPT: Record<SourceBlockTypeConst, string> = {
@@ -32,6 +35,8 @@ export function PropertiesPanel({
   onSourceImport,
   onDeleteNode,
   embedded = false,
+  sourcePreview = [],
+  sourceRowCount,
 }: PropertiesPanelProps) {
   const Tag = embedded ? 'div' : 'aside';
   const cls = embedded ? 'properties properties--embedded' : 'properties';
@@ -118,8 +123,15 @@ export function PropertiesPanel({
             <p className="panel-hint panel-hint--compact sql-import__hint">
               Script SQL avec <strong>CREATE TABLE</strong> + <strong>INSERT</strong>, ou une requête{' '}
               <strong>SELECT</strong> autonome. Évitez un SELECT sur une table non créée dans le fichier.
-              Démo : <code>data/transactions.sql</code>.
+              Exemple : <code>data/transactions.sql</code>.
             </p>
+          )}
+          {params.file_id && columns.length > 0 && (
+            <SourceDataPreview
+              columns={columns}
+              preview={sourcePreview}
+              rowCount={sourceRowCount}
+            />
           )}
         </div>
       )}

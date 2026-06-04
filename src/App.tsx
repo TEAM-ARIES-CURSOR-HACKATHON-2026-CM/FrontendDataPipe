@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -10,7 +10,8 @@ import {
   type OnEdgesChange,
 } from '@xyflow/react';
 import { uploadDataFile, runPipeline, buildPipelineRequest } from './api/client';
-import type { BlockNodeData, PipelineResult } from './types';
+import type { BlockNodeData, PipelineResult, PipelineRunMeta } from './types';
+import type { PipelineRunPhase } from './types/execution';
 import { Palette } from './components/Palette';
 import { FlowCanvas, handlePaletteDragStart } from './components/FlowCanvas';
 import { ExecutionPanel } from './components/ExecutionPanel';
@@ -37,6 +38,23 @@ import type { OnboardingAction } from './constants/guide';
 import { shouldShowIntro } from './constants/intro';
 import { ToastStack } from './components/ToastStack';
 import { useToasts } from './hooks/useToasts';
+import { countTransformBlocks } from './utils/pipelineStats';
+import {
+  PipelineLibraryModal,
+  type PipelineLoadOptions,
+} from './components/PipelineLibraryModal';
+import { shouldShowEngineWakeHint, markEngineWakeHintShown } from './utils/engineWakeHint';
+import { usePipelineRunShortcut } from './hooks/usePipelineRunShortcut';
+import { usePanelResize } from './hooks/usePanelResize';
+import { PanelResizeHandle } from './components/PanelResizeHandle';
+import {
+  DEFAULT_LEFT_PANEL_W,
+  DEFAULT_RIGHT_PANEL_W,
+  LEFT_KEY,
+  RIGHT_KEY,
+  readPanelWidth,
+  writePanelWidth,
+} from './utils/panelWidthStorage';
 
 export default function App() {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -70,10 +88,15 @@ export default function App() {
   );
 
   const [columns, setColumns] = useState<string[]>([]);
+  const [sourcePreview, setSourcePreview] = useState<Record<string, unknown>[]>([]);
+  const [sourceRowCount, setSourceRowCount] = useState<number | undefined>(undefined);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [runLoading, setRunLoading] = useState(false);
-  const { toasts, showError, showSuccess, dismiss: dismissToast } = useToasts();
+  const [runPhase, setRunPhase] = useState<PipelineRunPhase | null>(null);
+  const uploadSessionRef = useRef(0);
+  const { toasts, showError, showSuccess, showInfo, dismiss: dismissToast } = useToasts();
   const [result, setResult] = useState<PipelineResult | null>(null);
+  const [runMeta, setRunMeta] = useState<PipelineRunMeta | null>(null);
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [showBottomPanel, setShowBottomPanel] = useState(true);
@@ -84,6 +107,31 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
+  const [showPipelineLibrary, setShowPipelineLibrary] = useState(false);
+
+  const leftPanel = usePanelResize({
+    axis: 'horizontal',
+    initial: readPanelWidth(LEFT_KEY, DEFAULT_LEFT_PANEL_W),
+    min: 220,
+    max: 480,
+    direction: 1,
+  });
+
+  const rightPanel = usePanelResize({
+    axis: 'horizontal',
+    initial: readPanelWidth(RIGHT_KEY, DEFAULT_RIGHT_PANEL_W),
+    min: 280,
+    max: 640,
+    direction: -1,
+  });
+
+  useEffect(() => {
+    writePanelWidth(LEFT_KEY, leftPanel.size);
+  }, [leftPanel.size]);
+
+  useEffect(() => {
+    writePanelWidth(RIGHT_KEY, rightPanel.size);
+  }, [rightPanel.size]);
 
   useEffect(() => {
     if (!shouldShowIntro()) return;
@@ -160,10 +208,25 @@ export default function App() {
   );
 
   const handleSourceImport = async (nodeId: string, file: File) => {
+    const session = ++uploadSessionRef.current;
     setUploadLoading(true);
+    let wakeTimer: ReturnType<typeof setTimeout> | undefined;
+
+    if (shouldShowEngineWakeHint()) {
+      wakeTimer = window.setTimeout(() => {
+        if (uploadSessionRef.current !== session) return;
+        markEngineWakeHintShown();
+        showInfo(
+          'Réveil du moteur ETL en cours… Le premier import peut prendre jusqu’à une minute.',
+        );
+      }, 8000);
+    }
+
     try {
       const res = await uploadDataFile(file);
       setColumns(res.columns ?? []);
+      setSourcePreview(res.preview ?? []);
+      setSourceRowCount(res.row_count);
 
       const newParams = {
         file: file.name,
@@ -197,11 +260,12 @@ export default function App() {
       const raw = e instanceof Error ? e.message : 'Erreur import fichier';
       showError(formatSourceImportError(blockType, raw));
     } finally {
+      if (wakeTimer) window.clearTimeout(wakeTimer);
       setUploadLoading(false);
     }
   };
 
-  const handleRun = async () => {
+  const handleRun = useCallback(async () => {
     setResult(null);
 
     const validationError = validatePipelineBeforeRun(nodes, edges, columns);
@@ -221,6 +285,9 @@ export default function App() {
       .find((n) => isVizType((n.data as BlockNodeData).blockType));
 
     setRunLoading(true);
+    setRunMeta(null);
+    setRunPhase('pipeline');
+    const t0 = performance.now();
     try {
       let pipelineResult = await runPipeline(
         buildPipelineRequest(nodes, edges, vizNode?.id),
@@ -229,6 +296,7 @@ export default function App() {
       if (vizNode && pipelineResult.result_type === 'pie_chart') {
         const pieParams = getPieParamsFromNode((vizNode.data as BlockNodeData).params ?? {});
         if (pieParams) {
+          setRunPhase('chart');
           pipelineResult = await repairPieChartResult(pipelineResult, {
             vizNodeId: vizNode.id,
             pieParams,
@@ -245,13 +313,22 @@ export default function App() {
       }
 
       setResult(pipelineResult);
+      setRunMeta({
+        durationMs: performance.now() - t0,
+        rowCount: pipelineResult.row_count ?? pipelineResult.data.length,
+        transformCount: countTransformBlocks(nodes),
+      });
       setResultsOpen(true);
     } catch (e) {
       showError(e instanceof Error ? e.message : 'Erreur exécution');
     } finally {
       setRunLoading(false);
+      setRunPhase(null);
     }
-  };
+  }, [nodes, edges, columns, showError]);
+
+  const canRunPipeline = Boolean(sourceFileId) && !runLoading;
+  usePipelineRunShortcut(() => void handleRun(), canRunPipeline);
 
   const handleAiTransformations = useCallback(
     (blocks: ParsedBlock[]) => {
@@ -280,6 +357,27 @@ export default function App() {
     [nodes, edges, showSuccess],
   );
 
+  const handleLoadPipeline = useCallback(
+    (nextNodes: Node[], nextEdges: Edge[], options?: PipelineLoadOptions) => {
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+      setSelectedNode(null);
+      setResult(null);
+      setRunMeta(null);
+      setResultsOpen(false);
+      if (options?.hideLeftPanel) {
+        setShowLeftPanel(false);
+        setShowRightPanel(true);
+      }
+      if (!getSourceFileIdFromNodes(nextNodes)) {
+        setColumns([]);
+        setSourcePreview([]);
+        setSourceRowCount(undefined);
+      }
+    },
+    [],
+  );
+
   const handleDocIndexed = useCallback(
     (docId: string, label: string) => {
       setIndexedDocs((prev) =>
@@ -290,14 +388,6 @@ export default function App() {
     },
     [showSuccess],
   );
-
-  const layoutGridColumns = [
-    showLeftPanel ? '280px' : null,
-    'minmax(0, 1fr)',
-    showRightPanel ? '300px' : null,
-  ]
-    .filter(Boolean)
-    .join(' ');
 
   return (
     <div className="app">
@@ -333,6 +423,16 @@ export default function App() {
         </div>
       </header>
 
+      <PipelineLibraryModal
+        open={showPipelineLibrary}
+        nodes={nodes}
+        edges={edges}
+        onClose={() => setShowPipelineLibrary(false)}
+        onLoad={handleLoadPipeline}
+        onError={showError}
+        onSuccess={showSuccess}
+      />
+
       <HelpModal
         open={showHelp}
         onClose={() => setShowHelp(false)}
@@ -350,8 +450,21 @@ export default function App() {
       />
 
       <div className="app-workspace">
-      <div className="app-layout" style={{ gridTemplateColumns: layoutGridColumns }}>
-        {showLeftPanel && <Palette onDragStart={handlePaletteDragStart} />}
+      <div className="app-layout">
+        {showLeftPanel && (
+          <>
+            <div
+              className="app-layout__panel app-layout__panel--left"
+              style={{ width: leftPanel.size }}
+            >
+              <Palette
+                onDragStart={handlePaletteDragStart}
+                onOpenPipelineLibrary={() => setShowPipelineLibrary(true)}
+              />
+            </div>
+            <PanelResizeHandle edge="right" onPointerDown={leftPanel.onPointerDown} />
+          </>
+        )}
 
         <main
           className={[
@@ -376,7 +489,9 @@ export default function App() {
               sourceLinked={Boolean(sourceFileId)}
               sourceFileName={sourceFileName ?? null}
               loading={runLoading}
+              runPhase={runPhase}
               result={result}
+              runMeta={runMeta}
               resultsOpen={resultsOpen}
               onRun={handleRun}
               onToggleResults={() => setResultsOpen((v) => !v)}
@@ -385,15 +500,25 @@ export default function App() {
         </main>
 
         {showRightPanel && (
-          <RightSidebar
-            selectedNode={selectedNode}
-            columns={paramColumns}
-            uploadLoading={uploadLoading}
-            onUpdateParams={(id, params) => updateNodeData(id, { params })}
-            onUpdateLabel={(id, label) => updateNodeData(id, { label })}
-            onSourceImport={handleSourceImport}
-            onDeleteNode={deleteNode}
-          />
+          <>
+            <PanelResizeHandle edge="left" onPointerDown={rightPanel.onPointerDown} />
+            <div
+              className="app-layout__panel app-layout__panel--right"
+              style={{ width: rightPanel.size }}
+            >
+              <RightSidebar
+                selectedNode={selectedNode}
+                columns={paramColumns}
+                uploadLoading={uploadLoading}
+                onUpdateParams={(id, params) => updateNodeData(id, { params })}
+                onUpdateLabel={(id, label) => updateNodeData(id, { label })}
+                onSourceImport={handleSourceImport}
+                onDeleteNode={deleteNode}
+                sourcePreview={sourcePreview}
+                sourceRowCount={sourceRowCount}
+              />
+            </div>
+          </>
         )}
       </div>
 

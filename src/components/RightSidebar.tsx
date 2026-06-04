@@ -10,6 +10,8 @@ interface RightSidebarProps {
   onUpdateLabel: (nodeId: string, label: string) => void;
   onSourceImport: (nodeId: string, file: File) => void;
   onDeleteNode: (nodeId: string) => void;
+  sourcePreview?: Record<string, unknown>[];
+  sourceRowCount?: number;
 }
 
 export function RightSidebar(props: RightSidebarProps) {
@@ -27,6 +29,8 @@ export function RightSidebar(props: RightSidebarProps) {
           onUpdateLabel={props.onUpdateLabel}
           onSourceImport={props.onSourceImport}
           onDeleteNode={props.onDeleteNode}
+          sourcePreview={props.sourcePreview}
+          sourceRowCount={props.sourceRowCount}
           embedded
         />
       </div>

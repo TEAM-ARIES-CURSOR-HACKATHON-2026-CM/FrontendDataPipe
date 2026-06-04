@@ -27,6 +27,13 @@ export const INTRO_FEATURES = [
     title: 'Reporting analyste',
     detail: 'Tableaux, barres, secteurs et export CSV en un clic.',
   },
+  {
+    id: 'library',
+    icon: '⎘',
+    title: 'Modèles & sauvegardes',
+    detail:
+      'En bas de la palette : bibliothèque de pipelines métier et enregistrement de vos flux.',
+  },
 ] as const;
 
 export const INTRO_STEPS = [
