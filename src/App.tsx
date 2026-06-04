@@ -33,9 +33,9 @@ import { CopilotSidebar } from './components/CopilotSidebar';
 import { RagChatBubble } from './components/RagChatBubble';
 import { HelpModal, HelpNavButton } from './components/HelpModal';
 import { IntroLandingDrawer, IntroNavButton } from './components/IntroLandingDrawer';
+import { shouldShowIntro } from './constants/intro';
 import { OnboardingTour } from './components/OnboardingTour';
 import type { OnboardingAction } from './constants/guide';
-import { shouldShowIntro } from './constants/intro';
 import { ToastStack } from './components/ToastStack';
 import { useToasts } from './hooks/useToasts';
 import { countTransformBlocks } from './utils/pipelineStats';
@@ -104,7 +104,7 @@ export default function App() {
   const [showRagChat, setShowRagChat] = useState(false);
   const [indexedDocs, setIndexedDocs] = useState<{ id: string; label: string }[]>([]);
   const [showHelp, setShowHelp] = useState(false);
-  const [showIntro, setShowIntro] = useState(false);
+  const [showIntro, setShowIntro] = useState(shouldShowIntro);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
   const [showPipelineLibrary, setShowPipelineLibrary] = useState(false);
@@ -132,12 +132,6 @@ export default function App() {
   useEffect(() => {
     writePanelWidth(RIGHT_KEY, rightPanel.size);
   }, [rightPanel.size]);
-
-  useEffect(() => {
-    if (!shouldShowIntro()) return;
-    const timer = window.setTimeout(() => setShowIntro(true), 350);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   const handleIntroEnter = useCallback(({ withGuide }: { withGuide: boolean }) => {
     setShowIntro(false);

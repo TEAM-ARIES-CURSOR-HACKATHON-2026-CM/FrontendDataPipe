@@ -1,6 +1,7 @@
 import { BRAND, FINANCE_BADGES } from './branding';
 
-export const INTRO_STORAGE_KEY = 'datapipe_intro_v4_seen';
+/** Une fois par onglet / session navigateur (sessionStorage). */
+export const INTRO_SESSION_KEY = 'datapipe_intro_session_seen';
 
 export const INTRO_FEATURES = [
   {
@@ -44,17 +45,19 @@ export const INTRO_STEPS = [
 
 export { BRAND, FINANCE_BADGES };
 
+/** Afficher l’accueil tant que l’utilisateur n’a pas quitté l’intro dans cette session. */
 export function shouldShowIntro(): boolean {
   try {
-    return !localStorage.getItem(INTRO_STORAGE_KEY);
+    return !sessionStorage.getItem(INTRO_SESSION_KEY);
   } catch {
     return true;
   }
 }
 
+/** Mémoriser pour la session en cours (nouvel onglet ou navigateur relancé → réaffichage). */
 export function markIntroSeen(): void {
   try {
-    localStorage.setItem(INTRO_STORAGE_KEY, '1');
+    sessionStorage.setItem(INTRO_SESSION_KEY, '1');
   } catch {
     /* ignore */
   }

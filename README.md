@@ -1,6 +1,6 @@
 # DataPipe — Frontend
 
-Interface React pour l’éditeur de pipeline ETL (React Flow + Recharts).
+Interface **React 19 + Vite** pour l'éditeur de pipeline ETL visuel. Canevas **React Flow** (`@xyflow/react`), graphiques **Recharts**, copilote IA et RAG documentaire.
 
 ## Démarrage
 
@@ -12,67 +12,165 @@ npm run dev
 
 App : http://localhost:5173
 
-En local, `.env.development` utilise `VITE_API_URL=/api` : le proxy Vite redirige vers le backend déployé sur Hugging Face.
+Build production :
 
-## Backend (Aries DataPipe)
+```bash
+npm run build
+npm run preview   # test du build local
+```
 
-- Space : [AHMED-X-18/Aries-Datapipe](https://huggingface.co/spaces/AHMED-X-18/Aries-Datapipe)
-- API live : https://ahmed-x-18-aries-datapipe.hf.space
+## Architecture
+
+```
+src/
+├── App.tsx                      # Layout principal, état global du pipeline
+├── api/
+│   ├── config.ts                # URL backend ETL (VITE_API_URL)
+│   ├── aiConfig.ts              # URL assistant IA (VITE_AI_API_URL)
+│   ├── client.ts                # Client HTTP pipeline + upload
+│   ├── aiClient.ts              # Client HTTP IA (generate, ask, upload-doc)
+│   ├── schema.ts                # Types API backend
+│   ├── aiSchema.ts              # Types API IA
+│   └── paramsMapping.ts         # Mapping params front ↔ backend
+├── components/
+│   ├── FlowCanvas.tsx           # Canevas React Flow (nœuds, arêtes)
+│   ├── Palette.tsx              # Blocs glissables
+│   ├── PropertiesPanel.tsx      # Paramètres du bloc sélectionné + import CSV
+│   ├── ExecutionPanel.tsx       # Exécution et validation du pipeline
+│   ├── ResultsPanel.tsx         # Affichage tableau / graphiques
+│   ├── CopilotSidebar.tsx       # Copilote IA (génération Pandas)
+│   ├── AiAssistant.tsx          # Formulaire de génération IA
+│   ├── RagUploadPanel.tsx       # Upload documents RAG (PDF, TXT, MD)
+│   ├── RagAskPanel.tsx          # Questions sur documents indexés
+│   ├── charts/
+│   │   ├── BarChartView.tsx
+│   │   ├── PieChartView.tsx
+│   │   └── DataTable.tsx
+│   └── nodes/BlockNode.tsx      # Rendu d'un bloc sur le canevas
+├── constants/
+│   ├── blocks.ts                # Définition des blocs ETL
+│   ├── pipelineLibrary.ts       # Modèles de pipelines prédéfinis
+│   └── guide.ts                 # Textes d'aide / onboarding
+├── hooks/                       # Raccourcis clavier, toasts, redimensionnement
+├── utils/
+│   ├── pipelineValidation.ts    # Règles de connexion entre blocs
+│   ├── pandasToBlock.ts         # Code IA → nœud sur le canevas
+│   ├── pipelinePersistence.ts   # Sauvegarde locale du pipeline
+│   └── exportReporting.ts       # Export CSV / PNG
+└── styles/
+    └── flow-theme.css           # Thème visuel React Flow
+```
+
+## Backends consommés
+
+### Backend ETL (pipelines)
+
+| Endpoint | Méthode | Usage frontend |
+|----------|---------|----------------|
+| `/health` | GET | Vérification disponibilité |
+| `/upload` | POST | Import CSV dans le panneau propriétés |
+| `/pipeline` | POST | Bouton « Valider le pipeline » |
+| `/generate` | POST | Fallback si service IA indisponible |
+
+- Space HF : [AHMED-X-18/Aries-Datapipe](https://huggingface.co/spaces/AHMED-X-18/Aries-Datapipe)
+- API : https://ahmed-x-18-aries-datapipe.hf.space
 - Swagger : https://ahmed-x-18-aries-datapipe.hf.space/docs
 
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/health` | GET | `{ "status": "ok" }` |
-| `/upload` | POST | `multipart/form-data` champ `file` (CSV, JSON ou SQL) → `file_id`, `columns`, `preview`… |
-| `/pipeline` | POST | `{ nodes[], edges[{source,target}], output_node_id? }` → `result_type`, `data`, `chart_spec`, `row_count` |
-| `/generate` | POST | `{ description, columns? }` → `{ code, block_type?, params? }` |
+Le `file_id` retourné par `/upload` est stocké dans **`params.file_id`** du nœud CSV.
 
-Le `file_id` CSV est transmis dans les **params du nœud CSV** (`params.file_id`), pas à la racine du body `/pipeline`.
+### Assistant IA (copilote + RAG)
 
-## Variables d’environnement
+| Endpoint | Méthode | Composant |
+|----------|---------|-----------|
+| `/generate` | POST | `CopilotSidebar` / `AiAssistant` |
+| `/upload-doc` | POST | `RagUploadPanel` |
+| `/ask` | POST | `RagAskPanel` |
+| `/health` | GET | Vérification disponibilité |
 
-Copier `.env.example` vers `.env` pour pointer directement le Space (build preview / prod) :
+- Service : https://datapipe-ai-assistant.onrender.com
+- Documentation : [`../arise_rag_cursor_hack/ai-assistant/README.md`](../arise_rag_cursor_hack/ai-assistant/README.md)
 
-```
+## Variables d'environnement
+
+Copier `.env.example` vers `.env` pour un build preview / production :
+
+```env
 VITE_API_URL=https://ahmed-x-18-aries-datapipe.hf.space
+VITE_AI_API_URL=https://datapipe-ai-assistant.onrender.com
 ```
 
-Développement (proxy, défaut dans `.env.development`) :
+Développement (défaut dans `.env.development`) — proxy Vite :
 
-```
+```env
 VITE_API_URL=/api
 VITE_AI_API_URL=/ai-api
 ```
 
-Le build production lit `.env.production` (URLs directes des backends).
+Le proxy est configuré dans `vite.config.ts` :
+
+- `/api/*` → backend ETL (HF par défaut, surcharge via `VITE_API_PROXY_TARGET`)
+- `/ai-api/*` → assistant IA Render (surcharge via `VITE_AI_API_PROXY_TARGET`)
+
+Pour pointer vers des backends locaux :
+
+```env
+VITE_API_URL=/api
+VITE_AI_API_URL=/ai-api
+VITE_API_PROXY_TARGET=http://localhost:8000
+VITE_AI_API_PROXY_TARGET=http://localhost:8001
+```
+
+## Parcours utilisateur
+
+1. **Importer des données** — Glisser un bloc **CSV** → cliquer → choisir un fichier (`/upload`).
+2. **Construire le pipeline** — Connecter Filtre, Grouper, Trier, Ajouter colonne.
+3. **Visualiser** — Terminer par Tableau, Graphique barres ou circulaire.
+4. **Exécuter** — « Valider le pipeline » (`/pipeline`) → résultats dans le panneau inférieur.
+5. **Copilote IA** — Décrire une règle en français → code Pandas + ajout automatique de bloc(s).
+6. **RAG** — Charger un PDF/TXT/MD → poser des questions métier sur le document.
+
+## Blocs disponibles
+
+| Bloc | Type API | Description |
+|------|----------|-------------|
+| CSV | `csv` | Source de données (fichier uploadé) |
+| Filtre | `filter` | Filtrage par colonne / opérateur / valeur |
+| Grouper | `group` | Agrégation (sum, mean, count) |
+| Trier | `sort` | Tri ascendant / descendant |
+| Ajouter colonne | `add_column` | Formule calculée |
+| Afficher tableau | `table` | Résultat tabulaire |
+| Graphique barres | `bar_chart` | Bar chart Recharts |
+| Graphique circulaire | `pie_chart` | Pie chart Recharts |
+
+Le frontend valide les connexions (pas de cycles, ordre CSV → transformations → visualisation).
 
 ## Déploiement (Render)
 
 1. [Render](https://render.com) → **New Static Site** → repo GitHub
 2. **Root directory** : `frontend`
-3. **Build** : `npm install && npm run build` · **Publish** : `dist`
-4. Variables (si besoin) : `VITE_API_URL`, `VITE_AI_API_URL` (voir `.env.production`)
+3. **Build** : `npm install && npm run build`
+4. **Publish directory** : `dist`
+5. Variables : `VITE_API_URL`, `VITE_AI_API_URL` (voir `.env.production`)
 
-Fichier `render.yaml` inclus pour déploiement Blueprint.
+Le fichier `render.yaml` est inclus pour un déploiement Blueprint.
 
-Test local : `npm run build && npm run preview`
+## Stack technique
 
-## Logo
+| Technologie | Usage |
+|-------------|-------|
+| React 19 + TypeScript | UI |
+| Vite 8 | Build et dev server |
+| @xyflow/react | Éditeur de pipeline visuel |
+| Recharts | Graphiques barres / circulaire |
+| html-to-image | Export PNG des graphiques |
+| xlsx | Export Excel |
 
-Favicon et en-tête : `public/logo.svg` et `public/favicon.svg` (logo DataPipe, plus d’icône Vite).
+## Logo et branding
 
-## Structure
+Favicon et en-tête : `public/logo.svg`, `public/favicon.svg`.
 
-- `src/api/client.ts` — client HTTP + mapping `chart_spec` → `chart`
-- `src/api/schema.ts` — types OpenAPI
-- `src/components/FlowCanvas.tsx` — canevas React Flow
-- `src/components/PropertiesPanel.tsx` — paramètres + import CSV
-- `src/components/ExecutionPanel.tsx` — exécution pipeline
-- `src/components/CopilotSidebar.tsx` — copilote IA (`/generate`)
+## Documentation complémentaire
 
-## Parcours
-
-1. Glisser **CSV** → cliquer → importer un fichier (`/upload`)
-2. Connecter Filtre / Grouper / graphique
-3. **Valider le pipeline** (`/pipeline`)
-4. **Copilote** : règle en français (`/generate` avec colonnes connues)
+- Vue d'ensemble du projet : [`../README.md`](../README.md)
+- Backend ETL : [`../BackendDataPipe/README.md`](../BackendDataPipe/README.md)
+- Assistant IA : [`../arise_rag_cursor_hack/ai-assistant/README.md`](../arise_rag_cursor_hack/ai-assistant/README.md)
